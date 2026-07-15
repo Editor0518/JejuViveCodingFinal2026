@@ -447,7 +447,7 @@ function consFromJamo(str){
    데이터는 Apps Script 웹앱(JSON)에서 실시간으로 불러옵니다.
    ▼▼▼ 아래 SHEET_API_URL 을 배포한 웹앱 주소로 바꾸세요 ▼▼▼
    각 한자 항목: h=한자, m=뜻, s=성씨 여부, d=인명용 추가 시행일(YYYY-MM-DD) */
-const SHEET_API_URL='PASTE_YOUR_WEB_APP_URL_HERE';
+const SHEET_API_URL='https://script.google.com/macros/s/AKfycbxT4Zw4rRz8cZU6Kj1iabkvKE0lunTawU09aat4hb4ggzbGf3FBP7aIiu83U12S2M9H/exec';
 let HANJA_DB={};      // { '자':[{h,m,s,d}], ... } — 로드 후 채워짐
 let SYLLABLES=[];     // Object.keys(HANJA_DB)
 let HISTORY=[];       // 개정연혁 행 배열
