@@ -954,6 +954,31 @@ function renderHistory(){
 }
 
 /* ===================== 스프레드시트 데이터 로드 ===================== */
+/* ===================== 깨진 한자(미배정/PUA 코드) 필터 ===================== */
+// 실제 렌더링 가능한 한자 글리프 코드포인트인지 검사
+function isRealHanChar(cp){
+  return (cp>=0x3400&&cp<=0x4DBF)   // 확장 A
+      || (cp>=0x4E00&&cp<=0x9FFF)   // CJK 기본
+      || (cp>=0xF900&&cp<=0xFAFF)   // 호환 한자
+      || (cp>=0x20000&&cp<=0x2EBEF);// 확장 B~F
+}
+// 한자 문자열에 미배정/PUA 등 깨지는 코드가 있으면 true
+function hasBrokenGlyph(s){
+  if(!s) return true;
+  for(const ch of s){ if(!isRealHanChar(ch.codePointAt(0))) return true; }
+  return false;
+}
+// HANJA_DB에서 깨진 한자 항목 제거. 제거 개수 반환.
+function sanitizeHanjaDB(){
+  let removed=0;
+  for(const syl of Object.keys(HANJA_DB)){
+    const before=(HANJA_DB[syl]||[]).length;
+    HANJA_DB[syl]=(HANJA_DB[syl]||[]).filter(x=>!hasBrokenGlyph(x.h));
+    removed+=before-HANJA_DB[syl].length;
+  }
+  return removed;
+}
+
 async function loadData(){
   const status=document.getElementById('dataStatus');
   status.className='datastatus loading';
@@ -967,6 +992,7 @@ async function loadData(){
     if(data.error) throw new Error(data.error);
 
     HANJA_DB=data.hanja||{};
+    const brokenRemoved=sanitizeHanjaDB();   // 미배정/PUA 코드 한자 걸러내기
     SYLLABLES=Object.keys(HANJA_DB);
     HISTORY=data.history||[];
     renderHistory();
@@ -974,7 +1000,8 @@ async function loadData(){
 
     status.className='datastatus ok';
     const m=data.meta||{};
-    status.textContent='✓ 스프레드시트 연동 완료 · 한글 '+(m.syllableCount||SYLLABLES.length)+'자 / 한자 '+(m.hanjaCount||'?')+'자';
+    status.textContent='✓ 스프레드시트 연동 완료 · 한글 '+(m.syllableCount||SYLLABLES.length)+'자 / 한자 '+(m.hanjaCount||'?')+'자'
+      +(brokenRemoved?` (표기 불가 ${brokenRemoved}자 제외)`:'');
     setTimeout(()=>{status.style.display='none';},2600);
   }catch(err){
     HANJA_DB={};SYLLABLES=[];
