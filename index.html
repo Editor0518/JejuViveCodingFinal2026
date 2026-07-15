@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>한자 작명 도우미</title>
+<style>
+  :root{
+    --bg:#f6f3ec; --card:#fffdf8; --ink:#2b2620; --sub:#8a8071;
+    --line:#e4ddce; --accent:#8a5a2b; --accent-soft:#f0e3d2;
+    --surname:#b5432f; --surname-soft:#fbe6df;
+  }
+  *{box-sizing:border-box}
+  html{overflow-y:scroll;scrollbar-gutter:stable}
+  body{margin:0;font-family:"Noto Sans KR","Malgun Gothic",sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
+  header{padding:22px 20px 10px;text-align:center}
+  header h1{margin:0;font-size:24px;letter-spacing:-.5px}
+  header p{margin:6px 0 0;color:var(--sub);font-size:13px}
+  .topnav{position:sticky;top:0;z-index:20;background:var(--card);border-bottom:1px solid var(--line);
+          display:flex;justify-content:center;gap:6px;padding:8px 12px;flex-wrap:wrap;
+          box-shadow:0 1px 6px rgba(0,0,0,.04)}
+  .navbtn{padding:9px 20px;border:1px solid var(--line);background:#fff;border-radius:20px;
+          cursor:pointer;font-size:15px;font-weight:600;color:var(--sub);transition:.15s}
+  .navbtn:hover{border-color:var(--accent)}
+  .navbtn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .page{display:none}
+  .page.on{display:block}
+  .wrap{max-width:860px;margin:0 auto;padding:12px 16px 60px}
+  .about-card h2{font-size:19px;margin:0 0 10px;color:var(--accent)}
+  .about-card h3{font-size:15px;margin:18px 0 6px}
+  .about-card p{margin:0 0 10px;font-size:14px;color:var(--ink)}
+  .about-card ul{margin:6px 0 10px;padding-left:20px}
+  .about-card li{font-size:14px;margin-bottom:5px}
+  .htable{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+  .htable th,.htable td{border:1px solid var(--line);padding:8px 10px;text-align:center}
+  .htable th{background:var(--accent-soft);color:var(--accent);font-weight:700}
+  .htable td.note{text-align:left;color:var(--sub);font-size:12px}
+  .htable tr.cur td{background:var(--surname-soft);font-weight:600}
+  .htable td.add{color:var(--accent);font-weight:700}
+  .tablewrap{overflow-x:auto}
+  .tabs{display:flex;gap:8px;margin:14px 0}
+  .tab{flex:1;padding:12px;border:1px solid var(--line);background:var(--card);border-radius:12px;
+       cursor:pointer;font-size:15px;font-weight:600;color:var(--sub);text-align:center;transition:.15s}
+  .tab.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .panel{display:none}
+  .panel.on{display:block}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  input[type=text]{flex:1;min-width:120px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;font-size:16px;background:#fff}
+  input[type=number]{width:64px;padding:8px;border:1px solid var(--line);border-radius:8px;font-size:15px}
+  button.go{padding:12px 18px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-size:15px;font-weight:600;cursor:pointer}
+  button.ghost{padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);cursor:pointer;font-size:13px}
+  .subtabs{display:flex;gap:6px;margin-bottom:12px}
+  .subtab{padding:8px 14px;border:1px solid var(--line);border-radius:20px;background:#fff;cursor:pointer;font-size:13px;color:var(--sub)}
+  .subtab.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+  .hint{font-size:12px;color:var(--sub);margin:6px 0 0}
+  .sylchip{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;margin:4px;border:1px solid var(--line);
+           border-radius:10px;background:#fff;cursor:pointer;font-size:16px;font-weight:600}
+  .sylchip .cnt{font-size:11px;color:var(--sub);font-weight:400}
+  .sylchip:hover{border-color:var(--accent)}
+  .sylchip.zero{opacity:.5;cursor:default}
+  .grouphead{font-size:13px;color:var(--accent);font-weight:700;margin:2px 0 6px;border-bottom:1px dashed var(--line);padding-bottom:4px}
+  .empty{color:var(--sub);font-size:13px;padding:6px 2px}
+  .hj{position:relative;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;width:64px;padding:18px 4px 8px;margin:5px;
+      border:1px solid var(--line);border-radius:10px;background:#fff}
+  .hj.sur{border-color:var(--surname);background:var(--surname-soft)}
+  .hj.after{opacity:.6;border-style:dashed;background:#faf6ee}
+  .hj .char{font-size:26px;line-height:1;font-family:"Batang","Noto Serif KR",serif}
+  .hj .mean{font-size:11px;color:var(--sub);margin-top:5px;text-align:center}
+  .hj .badge{font-size:9px;color:#fff;background:var(--surname);border-radius:6px;padding:1px 5px;margin-top:4px}
+  .hj .date{font-size:9px;color:var(--accent);margin-top:4px}
+  .afterhead{font-size:12px;color:var(--surname);font-weight:700;margin:10px 0 4px;border-top:1px dashed var(--line);padding-top:8px}
+  .sylchip .plus{font-size:10px;color:var(--surname);font-weight:700;margin-left:2px}
+  #birthCard label.bl{font-size:13px;color:var(--ink);font-weight:600}
+  input[type=date]{padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:14px;background:#fff}
+  .sylhead{font-size:17px;font-weight:700;margin:10px 0 4px}
+  .sylhead small{font-size:12px;color:var(--sub);font-weight:400;margin-left:6px}
+  .keypad{margin-top:10px;padding:10px;background:#faf6ee;border:1px solid var(--line);border-radius:10px}
+  .keypad .krow{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:5px}
+  .keypad .k{width:34px;height:34px;border:1px solid var(--line);border-radius:8px;background:#fff;cursor:pointer;font-size:15px}
+  .keypad .k.fn{width:auto;padding:0 12px;font-size:12px;color:var(--sub)}
+  .keypad .lbl{font-size:11px;color:var(--sub);margin:2px 0}
+  .field{display:flex;gap:6px;align-items:center;margin-bottom:8px}
+  .field label{font-size:12px;color:var(--sub);width:44px}
+  .field input{flex:1}
+  .field .del{cursor:pointer;color:var(--surname);font-size:18px;border:none;background:none}
+  .legend{font-size:12px;color:var(--sub);margin-top:4px}
+  .legend .sw{display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--surname-soft);border:1px solid var(--surname);vertical-align:-2px;margin-right:4px}
+  .checkrow{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:14px}
+  .checkrow label{display:flex;gap:6px;align-items:center;cursor:pointer}
+  .helper-links{list-style:none;padding:0;margin:8px 0 0}
+  .helper-links li{margin-bottom:10px}
+  .helper-links a{display:inline-block;padding:11px 14px;border:1px solid var(--line);border-radius:10px;
+                  background:#fff;color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;transition:.15s}
+  .helper-links a:hover{border-color:var(--accent);background:var(--accent-soft)}
+
+  /* ===== 즐겨찾기 별 버튼 ===== */
+  .favbtn{position:absolute;top:3px;right:3px;border:none;background:none;cursor:pointer;
+          font-size:13px;line-height:1;padding:0;color:var(--sub)}
+  .favbtn:hover{color:#e0a520}
+  .favbtn.on{color:#e0a520}
+  .sylchip .favsyl{border:none;background:none;cursor:pointer;font-size:14px;line-height:1;padding:0;margin-right:1px;color:var(--sub)}
+  .sylchip .favsyl:hover{color:#e0a520}
+  .sylchip .favsyl.on{color:#e0a520}
+
+  /* ===== 오른쪽 고정 메모 패널 ===== */
+  .memopanel{position:fixed;top:0;right:0;width:324px;height:100vh;background:var(--card);
+             border-left:1px solid var(--line);box-shadow:-2px 0 14px rgba(0,0,0,.07);
+             display:flex;flex-direction:column;z-index:30}
+  .memohead{display:flex;align-items:center;justify-content:space-between;
+            padding:14px 14px 12px;border-bottom:1px solid var(--line)}
+  .memohead .ttl{font-size:15px;font-weight:700;color:var(--accent)}
+  .memohead .acts{display:flex;gap:6px}
+  .iconbtn{border:1px solid var(--line);background:#fff;border-radius:8px;width:32px;height:32px;
+           cursor:pointer;font-size:15px;color:var(--ink);display:inline-flex;align-items:center;justify-content:center}
+  .iconbtn:hover{border-color:var(--accent);color:var(--accent)}
+  #memoClose{display:none}
+  .memohint{font-size:11px;color:var(--sub);padding:8px 14px 0}
+  .memorows{flex:1;overflow-y:auto;padding:12px 12px 4px}
+  .memorow{border:1px solid var(--line);border-radius:12px;padding:8px;margin-bottom:10px;background:#fff}
+  .memorow.active{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+  .memorow-top{display:flex;align-items:center;gap:4px;margin-bottom:6px}
+  .rowpick{border:none;background:none;cursor:pointer;font-size:15px;color:var(--accent);width:22px;flex:none}
+  .rowname{flex:1;min-width:0;border:1px solid transparent;border-radius:6px;padding:4px 6px;
+           font-size:13px;font-weight:700;background:transparent;color:var(--ink)}
+  .rowname:focus{border-color:var(--line);background:#fff;outline:none}
+  .rowcopy,.rowdel{border:none;background:none;cursor:pointer;font-size:15px;color:var(--sub);width:26px;flex:none}
+  .rowcopy:hover{color:var(--accent)}
+  .rowdel{color:var(--surname)}
+  .rowmemo{width:100%;min-height:74px;border:1px solid var(--line);border-radius:8px;padding:8px;
+           font-size:13px;font-family:inherit;resize:vertical;background:#faf6ee;line-height:1.65;color:var(--ink)}
+  .memofoot{padding:8px 12px 12px;border-top:1px solid var(--line)}
+  .addrow{width:100%;padding:10px;border:1px dashed var(--accent);border-radius:10px;
+          background:var(--accent-soft);color:var(--accent);font-weight:600;cursor:pointer;font-size:13px}
+  .iconbtn:disabled{opacity:.4;cursor:default;border-color:var(--line);color:var(--sub)}
+  .memodates{margin:2px 12px 6px;border:1px solid var(--line);border-radius:10px;background:#faf6ee;overflow:hidden}
+  .dates-head{width:100%;display:flex;align-items:center;gap:7px;padding:8px 10px;border:none;
+              background:none;cursor:pointer;font-size:12px;font-weight:700;color:var(--accent);text-align:left}
+  .dates-head .dt-caret{font-size:10px;transition:transform .15s}
+  .memodates.collapsed .dt-caret{transform:rotate(-90deg)}
+  .dates-head .dt-cnt{color:var(--sub);font-weight:600}
+  .dates-list{padding:0 8px 8px}
+  .memodates.collapsed .dates-list{display:none}
+  .daterow{display:flex;align-items:center;gap:6px;padding:5px 0;border-top:1px dashed var(--line)}
+  .dr-date{font-size:12px;font-weight:700;color:var(--accent);white-space:nowrap}
+  .dr-label{flex:1;min-width:0;border:1px solid var(--line);border-radius:6px;padding:4px 6px;
+            font-size:12px;background:#fff;color:var(--ink)}
+  .dr-label:focus{border-color:var(--accent);outline:none}
+  .dr-del{border:none;background:none;cursor:pointer;color:var(--surname);font-size:16px;padding:0 2px;flex:none}
+  .memofab{position:fixed;right:16px;bottom:16px;width:54px;height:54px;border-radius:50%;border:none;
+           background:var(--accent);color:#fff;font-size:22px;cursor:pointer;z-index:40;
+           box-shadow:0 3px 12px rgba(0,0,0,.22);display:none;align-items:center;justify-content:center}
+  .memofab .dot{position:absolute;top:8px;right:8px;min-width:16px;height:16px;padding:0 3px;border-radius:8px;
+                background:var(--surname);color:#fff;font-size:10px;line-height:16px;display:none}
+  .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;
+         padding:10px 18px;border-radius:20px;font-size:13px;z-index:60;opacity:0;transition:opacity .3s;pointer-events:none}
+  .toast.show{opacity:.95}
+  @media(min-width:1100px){body{padding-right:336px}}
+  @media(max-width:1099px){
+    .memopanel{transform:translateX(100%);transition:transform .25s ease}
+    .memopanel.open{transform:none}
+    .memofab{display:flex}
+    #memoClose{display:inline-flex}
+  }
+
+  /* ===== 데이터 로드 상태 배너 ===== */
+  .datastatus{max-width:860px;margin:10px auto 0;padding:10px 14px;border-radius:10px;font-size:13px;
+              text-align:center;display:none}
+  .datastatus.loading{display:block;background:var(--accent-soft);color:var(--accent);border:1px solid var(--line)}
+  .datastatus.ok{display:block;background:#e8f2e5;color:#3f6b34;border:1px solid #cfe3c8}
+  .datastatus.err{display:block;background:var(--surname-soft);color:var(--surname);border:1px solid var(--surname);
+                  text-align:left;line-height:1.6}
+  .datastatus.err code{background:#fff;padding:1px 5px;border-radius:5px}
+</style>
+</head>
+<body>
+<header>
+  <h1>한자 작명 도우미</h1>
+  <p>캐릭터의 한글 이름에 어울리는 한자를 찾아보세요</p>
+</header>
+
+<nav class="topnav">
+  <button class="navbtn" data-page="about">소개</button>
+  <button class="navbtn on" data-page="name">작명</button>
+  <button class="navbtn" data-page="helper">도우미</button>
+  <button class="navbtn" data-page="history">개정 연혁</button>
+</nav>
+
+<div id="dataStatus" class="datastatus"></div>
+
+<!-- ===================== 소개 ===================== -->
+<section class="page" id="page-about">
+  <div class="wrap">
+    <div class="card about-card">
+      <h2>이 사이트는 무엇인가요?</h2>
+      <p>작가·캐릭터 디자이너·창작자가 만든 캐릭터의 <b>한글 이름</b>에 어울리는 <b>한자(漢字)</b>를 찾아 이름의 뜻을 정할 수 있도록 돕는 도구입니다. 실제 출생신고·개명에서 쓰이는 <b>인명용 한자</b> 기준을 그대로 반영합니다.</p>
+
+      <h3>무엇을 제공하나요?</h3>
+      <ul>
+        <li><b>한글로 이름짓기</b> — 완성된 글자나 자음·모음(초성·중성)을 섞어 입력하면, 조건에 맞는 한글 글자들을 찾아줍니다. 간편 검색과 자모를 하나씩 넣는 심화 검색을 지원합니다.</li>
+        <li><b>한자 찾기</b> — 이름 글자별로 쓸 수 있는 인명용 한자와 뜻을 보여주고, 성씨로도 쓰이는 한자(姓)를 따로 표시합니다.</li>
+        <li><b>시행일 기준 검증</b> — 출생신고·개명 신청일을 지정하면, 그 시점엔 아직 인명용으로 쓸 수 없던 한자를 구분해 보여줍니다.</li>
+        <li><b>개정 연혁</b> — 인명용 한자 제도가 어떻게 확대·정비되어 왔는지 연도별로 정리해 제공합니다.</li>
+      </ul>
+
+      <h3>목적</h3>
+      <p>이름은 캐릭터의 정체성입니다. 이 도구는 창작자가 소리(한글)와 의미(한자)를 함께 고려하면서, 실제 제도에서 통용되는 인명용 한자 범위 안에서 설득력 있는 이름을 지을 수 있도록 돕는 것을 목표로 합니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 작명 (기존 시스템) ===================== -->
+<section class="page on" id="page-name">
+<div class="wrap">
+  <div class="card" id="birthCard">
+    <div class="row">
+      <label class="bl">출생신고·개명 신청일</label>
+      <input type="date" id="birthDate">
+      <button class="ghost" id="birthClear">초기화</button>
+      <label style="font-size:13px;display:flex;gap:5px;align-items:center;cursor:pointer"><input type="checkbox" id="chkShowDate"> 한자 추가(시행일) 날짜 표시</label>
+    </div>
+    <p class="hint">출생신고 또는 개명 신청일을 지정하면, 시행일이 그날 이후인(=당시엔 쓸 수 없던) 한자를 검색 결과에서 따로 구분합니다. 시행일 당일에 신청한 경우는 사용 가능으로 처리됩니다.</p>
+  </div>
+
+  <div class="tabs">
+    <div class="tab on" data-tab="name">1. 한글로 이름짓기</div>
+    <div class="tab" data-tab="hanja">2. 한자 찾기</div>
+  </div>
+
+  <!-- ===== 한글로 이름짓기 ===== -->
+  <section class="panel on" id="panel-name">
+    <div class="subtabs">
+      <div class="subtab on" data-sub="simple">간편 검색</div>
+      <div class="subtab" data-sub="adv">심화 검색</div>
+    </div>
+
+    <!-- 간편 검색 -->
+    <div id="sub-simple">
+      <div class="card">
+        <div class="row">
+          <input type="text" id="simpleInput" placeholder="예: ㅈ차ㄹ / 자 / 말 / 장자">
+          <button class="go" id="simpleBtn">검색</button>
+        </div>
+        <p class="hint">완성된 글자와 자음·모음을 섞어서 입력할 수 있어요. 초성(ㅈ), 한 글자(자), 여러 글자(장자) 모두 가능.</p>
+      </div>
+      <div id="simpleResult"></div>
+    </div>
+
+    <!-- 심화 검색 -->
+    <div id="sub-adv" style="display:none">
+      <div class="card">
+        <p class="hint" style="margin-top:0">자음·모음을 하나씩 입력해 검색합니다. 성과 이름을 한 글자씩 나눠서 넣으세요. (아래 자판 사용 권장)</p>
+        <div id="advFields"></div>
+        <div class="row" style="margin-top:6px">
+          <button class="ghost" id="advAdd">＋ 글자 칸 추가</button>
+          <button class="go" id="advBtn" style="margin-left:auto">검색</button>
+        </div>
+        <div class="keypad" id="keypad"></div>
+      </div>
+      <div id="advResult"></div>
+    </div>
+  </section>
+
+  <!-- ===== 한자 찾기 ===== -->
+  <section class="panel" id="panel-hanja">
+    <div class="card">
+      <div class="row">
+        <input type="text" id="hanjaInput" placeholder="이름 또는 초성 입력 (예: 남궁미래 / 자 / ㄱ)">
+        <button class="go" id="hanjaBtn">검색</button>
+      </div>
+      <div class="checkrow">
+        <label><input type="checkbox" id="chkSurname"> 성씨만 보기</label>
+        <label>성씨 <input type="number" id="surCount" min="0" max="2" value="1"> 자</label>
+        <label><input type="checkbox" id="chkExact"> 글자 완벽히 맞춤</label>
+      </div>
+      <div class="legend"><span class="sw"></span> 성씨로도 쓰이는 한자 (姓 표시)</div>
+      <p class="hint">완성된 글자만 검색됩니다. '글자 완벽히 맞춤'을 끄면 초성·중성이 비슷한 글자도 함께 나와요.</p>
+    </div>
+    <div id="hanjaResult"></div>
+  </section>
+</div>
+</section>
+
+<!-- ===================== 도우미 (AI 프롬프트) ===================== -->
+<section class="page" id="page-helper">
+  <div class="wrap">
+    <div class="card about-card">
+      <h2>AI 작명 도우미</h2>
+      <p>지금 <b>이름 메모에서 선택된(●) 후보</b>를 바탕으로, 이름 한자의 뜻을 풀이해 달라는 <b>프롬프트</b>를 만들어 드려요. 아래 버튼으로 복사한 뒤, <b>사용 중인 AI(ChatGPT·Gemini·Claude 등)에 붙여넣어</b> 물어보세요. (이 도구가 직접 AI에 물어보지는 않습니다.)</p>
+    </div>
+
+    <div class="card">
+      <div class="field" style="margin-bottom:12px">
+        <label style="width:auto">현재 후보</label>
+        <b id="helperCandName" style="color:var(--accent)">—</b>
+      </div>
+      <div class="row" style="margin-bottom:8px">
+        <label class="bl" style="width:88px">생년월일</label>
+        <input type="date" id="helperBirth">
+        <label class="bl" style="width:auto;margin-left:8px">성별</label>
+        <select id="helperGender" style="padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:14px;background:#fff">
+          <option value="">선택 안 함</option>
+          <option value="남성">남성</option>
+          <option value="여성">여성</option>
+          <option value="직접입력">직접입력</option>
+        </select>
+      </div>
+      <p class="hint" style="margin-bottom:12px">생년월일과 성별은 <b>공란이어도 됩니다.</b> 입력하면 프롬프트에 함께 담겨, 더 어울리는 해석을 받을 수 있어요.</p>
+
+      <div class="row" style="margin-bottom:6px">
+        <button class="go" id="helperGen">프롬프트 새로 만들기</button>
+        <button class="go" id="helperCopy" style="margin-left:auto;background:var(--surname)">⧉ 프롬프트 복사</button>
+      </div>
+      <textarea id="helperPrompt" class="rowmemo" style="min-height:260px;width:100%;background:#faf6ee" placeholder="선택된 후보가 없으면 여기에 안내가 표시됩니다."></textarea>
+      <p class="hint">필요하면 위 프롬프트를 직접 수정한 뒤 복사해도 됩니다.</p>
+    </div>
+
+    <div class="card about-card">
+      <h3 style="margin-top:0">연관된 도움 링크</h3>
+      <p>새 탭에서 열립니다.</p>
+      <ul class="helper-links">
+        <li><a href="https://hanja.dict.naver.com/#/category/name" target="_blank" rel="noopener">네이버 한자사전 · 이름용 한자 →</a></li>
+        <li><a href="https://efamily.scourt.go.kr/cs/CsBltnWrtList.do?bltnbordId=0000010" target="_blank" rel="noopener">대법원 전자가족관계등록시스템 · 인명용 한자 안내 →</a></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 개정 연혁 ===================== -->
+<section class="page" id="page-history">
+  <div class="wrap">
+    <div class="card about-card">
+      <h2>인명용 한자 개정 연혁</h2>
+      <p>인명용 한자는 이름에 쓸 수 있도록 국가가 허용한 한자의 목록입니다. 1991년 제도 도입 이후 여러 차례 확대·정비되어 왔으며, 아래는 주요 개정 내역입니다. <b>2024년 개정본이 2026년 현재 유효</b>합니다.</p>
+      <div class="tablewrap">
+        <table class="htable">
+          <thead>
+            <tr><th>연도</th><th>시행일</th><th>추가 글자수</th><th>누적 총 글자수</th><th>근거법령</th><th>비고</th></tr>
+          </thead>
+          <tbody id="historyBody">
+            <tr><td>1991</td><td>1991-04-01</td><td class="add">최초 제정</td><td>2,856</td><td class="note">호적법 시행규칙</td><td class="note">제도 최초 시행. 한문교육용 기초한자 + 인명용 추가한자</td></tr>
+            <tr><td>1994</td><td>1994-09-01</td><td class="add">+108</td><td>2,964</td><td class="note">호적법 시행규칙</td><td class="note">—</td></tr>
+            <tr><td>1998</td><td>1998-01-01</td><td class="add">+75</td><td>3,039</td><td class="note">호적법 시행규칙</td><td class="note">—</td></tr>
+            <tr><td>2001</td><td>2001-01-04</td><td class="add">+1,840</td><td>4,879</td><td class="note">호적법 시행규칙</td><td class="note">대규모 확대</td></tr>
+            <tr><td>2004</td><td>2004-10-18</td><td class="add">+159</td><td>5,038</td><td class="note">호적법 시행규칙</td><td class="note">—</td></tr>
+            <tr><td>2007</td><td>2007-02-15</td><td class="add">+113</td><td>5,151</td><td class="note">호적법 시행규칙</td><td class="note">호적법 시행규칙상 마지막 개정</td></tr>
+            <tr><td>2010</td><td>2010-01-01</td><td class="add">+303</td><td>5,454</td><td class="note">가족관계등록규칙</td><td class="note">호적법 폐지(2008)로 근거 규칙 이관. 표 전면 정비</td></tr>
+            <tr><td>2013</td><td>2013-07-01</td><td class="add">+307</td><td>5,761</td><td class="note">가족관계등록규칙</td><td class="note">—</td></tr>
+            <tr><td>2015</td><td>2015-01-01</td><td class="add">+2,381</td><td>8,142</td><td class="note">가족관계등록규칙</td><td class="note">역대 최대 확대(당시 기준)</td></tr>
+            <tr><td>2018</td><td>2018-12-28</td><td class="add">+137</td><td>8,279</td><td class="note">가족관계등록규칙</td><td class="note">—</td></tr>
+            <tr><td>2022</td><td>2022-02-14</td><td class="add">+40</td><td>8,319</td><td class="note">가족관계등록규칙</td><td class="note">—</td></tr>
+            <tr class="cur"><td>2024</td><td>2024-06-11</td><td class="add">+1,070</td><td>9,389</td><td class="note">가족관계등록규칙(대법원규칙 제3151호)</td><td class="note">최근 개정. 2026년 현재 유효</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="hint">※ 시행일은 해당 개정으로 추가된 한자를 실제로 이름에 쓸 수 있게 된 날짜입니다. '작명' 탭에서 신청일을 지정하면 시행일 기준으로 사용 가능 여부를 구분해 볼 수 있습니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 이름 메모 패널 (고정) ===================== -->
+<aside class="memopanel" id="memoPanel">
+  <div class="memohead">
+    <span class="ttl">📝 이름 메모</span>
+    <div class="acts">
+      <button class="iconbtn" id="memoAddDate" title="작명 탭의 신청일을 이 캐릭터에 기록">📅</button>
+      <button class="iconbtn" id="memoCopyAll" title="전체 복사">⧉</button>
+      <button class="iconbtn" id="memoClose" title="닫기">×</button>
+    </div>
+  </div>
+  <div class="memodates" id="memoDates" style="display:none">
+    <button class="dates-head" id="datesToggle" title="접기/펼치기">
+      <span class="dt-caret">▾</span><span>📅 신청일 기록</span><span class="dt-cnt" id="datesCnt"></span>
+    </button>
+    <div class="dates-list" id="datesList"></div>
+  </div>
+  <p class="memohint">한자의 ☆는 <b>지금 선택된(●) 후보</b>에 “한글 한자(뜻)”을, 한글 글자 칩의 ☆는 <b>한글 글자만</b>(한자 미정) 담아요. 📅는 작명 탭의 신청일을 기록으로 추가합니다(캐릭터별로 여러 개, 메모도 가능).</p>
+  <div class="memorows" id="memoRows"></div>
+  <div class="memofoot">
+    <button class="addrow" id="memoAddRow">＋ 이름 후보 추가</button>
+  </div>
+</aside>
+<button class="memofab" id="memoFab" title="이름 메모 열기">📝<span class="dot" id="memoFabDot"></span></button>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===================== 한글 자모 엔진 ===================== */
+const CHO=['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+const JUNG=['ㅏ','ㅐ','ㅑ','ㅒ','ㅓ','ㅔ','ㅕ','ㅖ','ㅗ','ㅘ','ㅙ','ㅚ','ㅛ','ㅜ','ㅝ','ㅞ','ㅟ','ㅠ','ㅡ','ㅢ','ㅣ'];
+const JONG=['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+
+// 이중모음 -> 원자 모음
+const VOWEL_ATOMS={'ㅐ':['ㅏ','ㅣ'],'ㅒ':['ㅑ','ㅣ'],'ㅔ':['ㅓ','ㅣ'],'ㅖ':['ㅕ','ㅣ'],
+ 'ㅘ':['ㅗ','ㅏ'],'ㅙ':['ㅗ','ㅏ','ㅣ'],'ㅚ':['ㅗ','ㅣ'],
+ 'ㅝ':['ㅜ','ㅓ'],'ㅞ':['ㅜ','ㅓ','ㅣ'],'ㅟ':['ㅜ','ㅣ'],'ㅢ':['ㅡ','ㅣ']};
+// 겹받침 -> 원자 자음
+const JONG_ATOMS={'ㄳ':['ㄱ','ㅅ'],'ㄵ':['ㄴ','ㅈ'],'ㄶ':['ㄴ','ㅎ'],'ㄺ':['ㄹ','ㄱ'],'ㄻ':['ㄹ','ㅁ'],
+ 'ㄼ':['ㄹ','ㅂ'],'ㄽ':['ㄹ','ㅅ'],'ㄾ':['ㄹ','ㅌ'],'ㄿ':['ㄹ','ㅍ'],'ㅀ':['ㄹ','ㅎ'],'ㅄ':['ㅂ','ㅅ']};
+
+const isCompatConsonant=ch=>{const c=ch.charCodeAt(0);return c>=0x3131&&c<=0x314E;};
+const isCompatVowel=ch=>{const c=ch.charCodeAt(0);return c>=0x314F&&c<=0x3163;};
+const isSyllable=ch=>{const c=ch.charCodeAt(0);return c>=0xAC00&&c<=0xD7A3;};
+
+function decompose(syl){
+  const code=syl.charCodeAt(0)-0xAC00;
+  if(code<0||code>11171) return null;
+  return {cho:CHO[Math.floor(code/588)], jung:JUNG[Math.floor((code%588)/28)], jong:JONG[code%28]};
+}
+const vAtoms=v=>VOWEL_ATOMS[v]||[v];
+const jAtoms=j=>!j?[]:(JONG_ATOMS[j]||[j]);
+
+// 후보 글자의 원자 집합
+function sylAtoms(syl){
+  const d=decompose(syl);
+  return {cho:new Set([d.cho]), jung:new Set(vAtoms(d.jung)), jong:new Set(jAtoms(d.jong))};
+}
+const isSuper=(cand,cons)=>{for(const x of cons) if(!cand.has(x)) return false; return true;};
+function matchConstraint(syl,cons){
+  const a=sylAtoms(syl);
+  return isSuper(a.cho,cons.cho)&&isSuper(a.jung,cons.jung)&&isSuper(a.jong,cons.jong);
+}
+// 완성 글자로부터 제약 만들기 (초성 고정, 중성 원자 포함, 종성 원자 포함)
+function consFromSyllable(syl){
+  const d=decompose(syl);
+  return {cho:new Set([d.cho]), jung:new Set(vAtoms(d.jung)), jong:new Set(jAtoms(d.jong))};
+}
+// 자모 문자열로부터 위치 기반 제약 (심화검색)
+function consFromJamo(str){
+  const cho=new Set(),jung=new Set(),jong=new Set();
+  const leadCons=[]; let seenV=false;
+  for(const ch of str){
+    if(isCompatVowel(ch)){seenV=true; vAtoms(ch).forEach(a=>jung.add(a));}
+    else if(isCompatConsonant(ch)){ if(!seenV) leadCons.push(ch); else jAtoms(ch).forEach(a=>jong.add(a)); }
+    else if(isSyllable(ch)){const d=decompose(ch);cho.add(d.cho);vAtoms(d.jung).forEach(a=>jung.add(a));jAtoms(d.jong).forEach(a=>jong.add(a));seenV=true;}
+  }
+  if(seenV){
+    leadCons.forEach(c=>cho.add(c));
+  } else if(leadCons.length){
+    // 모음이 없으면 첫 자음은 초성, 나머지는 종성으로 처리
+    cho.add(leadCons[0]);
+    leadCons.slice(1).forEach(c=>jAtoms(c).forEach(a=>jong.add(a)));
+  }
+  return {cho,jung,jong};
+}
+
+/* ===================== 한자 / 성씨 데이터베이스 (구글 스프레드시트 연동) =====================
+   데이터는 Apps Script 웹앱(JSON)에서 실시간으로 불러옵니다.
+   ▼▼▼ 아래 SHEET_API_URL 을 배포한 웹앱 주소로 바꾸세요 ▼▼▼
+   각 한자 항목: h=한자, m=뜻, s=성씨 여부, d=인명용 추가 시행일(YYYY-MM-DD) */
+const SHEET_API_URL='PASTE_YOUR_WEB_APP_URL_HERE';
+let HANJA_DB={};      // { '자':[{h,m,s,d}], ... } — 로드 후 채워짐
+let SYLLABLES=[];     // Object.keys(HANJA_DB)
+let HISTORY=[];       // 개정연혁 행 배열
+/* (아래 _SAMPLE_HANJA 는 예전 예시 데이터 — 실제로는 스프레드시트 값으로 대체되며 사용되지 않습니다) */
+const _SAMPLE_HANJA={
+ '자':[{h:'子',m:'아들 자'},{h:'慈',m:'사랑 자'},{h:'紫',m:'자줏빛 자',d:'2007-08-03'},{h:'磁',m:'자석 자',d:'2015-01-01'}],
+ '조':[{h:'趙',m:'나라 조',s:true},{h:'曺',m:'성 조',s:true},{h:'朝',m:'아침 조'},{h:'照',m:'비칠 조',d:'2005-01-01'}],
+ '지':[{h:'池',m:'못 지',s:true},{h:'智',m:'슬기 지',s:true},{h:'志',m:'뜻 지'},{h:'芝',m:'지초 지',d:'2001-01-04'}],
+ '장':[{h:'張',m:'베풀 장',s:true},{h:'章',m:'글 장'},{h:'長',m:'길 장'},{h:'壯',m:'씩씩할 장',d:'2015-01-01'}],
+ '재':[{h:'才',m:'재주 재'},{h:'在',m:'있을 재'},{h:'財',m:'재물 재',d:'2005-01-01'},{h:'宰',m:'재상 재',d:'2007-08-03'}],
+ '쟁':[{h:'爭',m:'다툴 쟁'}],
+ '차':[{h:'車',m:'수레 차',s:true},{h:'次',m:'버금 차'},{h:'借',m:'빌릴 차',d:'2015-01-01'}],
+ '말':[{h:'末',m:'끝 말'},{h:'茉',m:'말리 말',d:'2022-03-18'}],
+ '맑':[],
+ '맗':[],
+ '강':[{h:'姜',m:'성 강',s:true},{h:'康',m:'편안 강',s:true},{h:'强',m:'강할 강'},{h:'江',m:'강 강'}],
+ '만':[{h:'萬',m:'일만 만'},{h:'滿',m:'찰 만'},{h:'晩',m:'늦을 만',d:'2005-01-01'}],
+ '명':[{h:'明',m:'밝을 명',s:true},{h:'命',m:'목숨 명'},{h:'銘',m:'새길 명',d:'2007-08-03'}],
+ '성':[{h:'成',m:'이룰 성',s:true},{h:'星',m:'별 성'},{h:'性',m:'성품 성'},{h:'聖',m:'성인 성',d:'2015-01-01'}],
+ '형':[{h:'亨',m:'형통할 형'},{h:'炯',m:'빛날 형',d:'2001-01-04'},{h:'瑩',m:'밝을 형',d:'2015-01-01'},{h:'螢',m:'반디 형',d:'2022-03-18'}],
+ '공':[{h:'孔',m:'구멍 공',s:true},{h:'公',m:'공변될 공'},{h:'功',m:'공 공'},{h:'恭',m:'공손할 공',d:'2005-01-01'}],
+ '남':[{h:'南',m:'남녘 남',s:true},{h:'男',m:'사내 남'},{h:'楠',m:'녹나무 남',d:'2007-08-03'}],
+ '궁':[{h:'宮',m:'집 궁',s:true},{h:'弓',m:'활 궁'}],
+ '김':[{h:'金',m:'성 김',s:true}],
+ '고':[{h:'高',m:'높을 고',s:true},{h:'古',m:'옛 고'},{h:'顧',m:'돌아볼 고',d:'2015-01-01'}],
+ '미':[{h:'美',m:'아름다울 미'},{h:'味',m:'맛 미',d:'2015-01-01'},{h:'尾',m:'꼬리 미',d:'2007-08-03'}],
+ '래':[{h:'來',m:'올 래'},{h:'萊',m:'명아주 래',d:'2005-01-01'}],
+ '오':[{h:'吳',m:'성 오',s:true},{h:'五',m:'다섯 오'},{h:'悟',m:'깨달을 오',d:'2001-01-04'},{h:'午',m:'낮 오',d:'2015-01-01'}],
+ '옹':[{h:'邕',m:'막힐/성 옹',s:true},{h:'雍',m:'화할 옹'},{h:'翁',m:'늙은이 옹',d:'2007-08-03'}],
+ '연':[{h:'延',m:'늘일 연',s:true},{h:'燕',m:'제비 연'},{h:'妍',m:'고울 연',d:'2001-01-04'},{h:'硏',m:'갈 연',d:'2015-01-01'}],
+ '우':[{h:'禹',m:'성 우',s:true},{h:'宇',m:'집 우'},{h:'佑',m:'도울 우',d:'2001-01-04'},{h:'雨',m:'비 우'},{h:'友',m:'벗 우'}],
+ '리':[{h:'利',m:'이로울 리'},{h:'理',m:'다스릴 리'},{h:'里',m:'마을 리',d:'2005-01-01'}],
+ '려':[{h:'呂',m:'성 려',s:true},{h:'麗',m:'고울 려',d:'2007-08-03'}],
+ '로':[{h:'魯',m:'노나라 로',s:true},{h:'露',m:'이슬 로',d:'2015-01-01'},{h:'老',m:'늙을 로'}]
+};
+void _SAMPLE_HANJA;   // 미사용 (스프레드시트 연동으로 대체)
+const surnameCount=syl=>(HANJA_DB[syl]||[]).filter(x=>x.s).length;
+
+/* ===================== 출생신고·개명 신청일 (인명용 시행일 기준) ===================== */
+const getBirth=()=>document.getElementById('birthDate').value||'';   // 신고/신청일
+const showDates=()=>document.getElementById('chkShowDate').checked;
+// 한자의 시행일이 신청일보다 늦으면(시행일 > 신청일) 당시엔 사용 불가. 시행일 당일(==)은 사용 가능.
+const isAfterBirth=x=>{const b=getBirth();return !!(b && x.d && x.d>b);};
+
+/* ===================== 공통 검색 ===================== */
+// 제약에 맞는 등록 글자 목록
+function searchSyllables(cons){
+  return SYLLABLES.filter(s=>matchConstraint(s,cons)).sort();
+}
+
+/* ===================== 페이지(헤더 네비) 전환 =====================
+   display 토글 방식이라 각 페이지의 입력값·검색결과는 DOM에 그대로 남아
+   페이지를 오가도 작업 내용이 사라지지 않습니다. */
+document.querySelectorAll('.navbtn').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.navbtn').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  document.getElementById('page-'+b.dataset.page).classList.add('on');
+  window.scrollTo({top:0,behavior:'smooth'});
+});
+
+/* ===================== 탭 전환 ===================== */
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('on'));
+  t.classList.add('on');
+  document.getElementById('panel-'+t.dataset.tab).classList.add('on');
+});
+document.querySelectorAll('.subtab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.subtab').forEach(x=>x.classList.remove('on'));
+  t.classList.add('on');
+  document.getElementById('sub-simple').style.display = t.dataset.sub==='simple'?'':'none';
+  document.getElementById('sub-adv').style.display = t.dataset.sub==='adv'?'':'none';
+});
+
+/* ===================== 글자 칩 렌더 ===================== */
+function sylChipHTML(syl){
+  const all=HANJA_DB[syl]||[];
+  const usable=all.filter(x=>!isAfterBirth(x)).length;
+  const after=all.length-usable;
+  const zero=all.length===0?' zero':'';
+  const plus=(getBirth()&&after)?`<span class="plus">+${after}</span>`:'';
+  return `<span class="sylchip${zero}" data-syl="${syl}"><button class="favsyl" data-syl="${syl}" title="이 한글 글자를 후보에 담기 (한자 미정)">☆</button>${syl}<span class="cnt">인명용 ${usable}자</span>${plus}</span>`;
+}
+function bindChips(container){
+  container.querySelectorAll('.sylchip:not(.zero)').forEach(ch=>{
+    ch.onclick=()=>goToHanja(ch.dataset.syl);
+  });
+  container.querySelectorAll('.favsyl').forEach(b=>{
+    b.onclick=e=>{e.stopPropagation();toggleSylFav(b);};
+  });
+}
+function goToHanja(syl){
+  document.querySelector('.tab[data-tab="hanja"]').click();
+  document.getElementById('hanjaInput').value=syl;
+  document.getElementById('chkSurname').checked=false;
+  runHanja();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ===================== 간편 검색 ===================== */
+function runSimple(){
+  const raw=document.getElementById('simpleInput').value.trim();
+  const box=document.getElementById('simpleResult'); box.innerHTML='';
+  if(!raw){box.innerHTML='<div class="card empty">검색어를 입력하세요.</div>';return;}
+  for(const ch of raw){
+    let cons=null,label=ch;
+    if(isSyllable(ch)) cons=consFromSyllable(ch);
+    else if(isCompatConsonant(ch)) cons={cho:new Set([ch]),jung:new Set(),jong:new Set()};
+    else if(isCompatVowel(ch)) cons={cho:new Set(),jung:new Set(vAtoms(ch)),jong:new Set()};
+    else continue;
+    const list=searchSyllables(cons);
+    const chips=list.length?list.map(sylChipHTML).join(''):'<div class="empty">등록된 글자 없음</div>';
+    const card=document.createElement('div');card.className='card';
+    card.innerHTML=`<div class="grouphead">'${label}' 검색 결과 · ${list.length}글자</div><div>${chips}</div>`;
+    box.appendChild(card);
+    bindChips(card);
+  }
+  markFavStars();
+}
+document.getElementById('simpleBtn').onclick=runSimple;
+document.getElementById('simpleInput').addEventListener('input',runSimple);
+
+/* ===================== 심화 검색 ===================== */
+const advFields=document.getElementById('advFields');
+let focusedInput=null;
+function addAdvField(labelText){
+  const idx=advFields.children.length;
+  const roleLabel=labelText||(idx===0?'성':'이름'+idx);
+  const div=document.createElement('div');div.className='field';
+  div.innerHTML=`<label>${roleLabel}</label><input type="text" class="advin" placeholder="자음·모음 하나씩 (예: ㅏㅇ)"><button class="del" title="삭제">×</button>`;
+  advFields.appendChild(div);
+  const inp=div.querySelector('input');
+  inp.addEventListener('focus',()=>focusedInput=inp);
+  inp.addEventListener('input',runAdv);
+  div.querySelector('.del').onclick=()=>{div.remove();runAdv();};
+  focusedInput=inp;
+}
+document.getElementById('advAdd').onclick=()=>addAdvField();
+addAdvField('성'); addAdvField('이름1');
+
+// 자모 키패드
+const keypad=document.getElementById('keypad');
+const KP_CHO=['ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ','ㄲ','ㄸ','ㅃ','ㅆ','ㅉ'];
+const KP_JUNG=['ㅏ','ㅑ','ㅓ','ㅕ','ㅗ','ㅛ','ㅜ','ㅠ','ㅡ','ㅣ','ㅐ','ㅔ','ㅚ','ㅟ','ㅢ'];
+keypad.innerHTML=`
+  <div class="lbl">자음 (초성·받침)</div><div class="krow">${KP_CHO.map(k=>`<button class="k" data-j="${k}">${k}</button>`).join('')}</div>
+  <div class="lbl">모음</div><div class="krow">${KP_JUNG.map(k=>`<button class="k" data-j="${k}">${k}</button>`).join('')}</div>
+  <div class="krow"><button class="k fn" data-fn="back">⌫ 지우기</button><button class="k fn" data-fn="clear">전체삭제</button></div>`;
+keypad.querySelectorAll('.k').forEach(b=>b.onclick=()=>{
+  if(!focusedInput){focusedInput=advFields.querySelector('input');}
+  if(!focusedInput)return;
+  if(b.dataset.fn==='back') focusedInput.value=focusedInput.value.slice(0,-1);
+  else if(b.dataset.fn==='clear') focusedInput.value='';
+  else focusedInput.value+=b.dataset.j;
+  focusedInput.focus();
+  runAdv();
+});
+
+function runAdv(){
+  const box=document.getElementById('advResult');box.innerHTML='';
+  const inputs=[...advFields.querySelectorAll('input')];
+  let any=false;
+  inputs.forEach((inp,i)=>{
+    const val=inp.value.trim(); if(!val)return; any=true;
+    const cons=consFromJamo(val);
+    const list=searchSyllables(cons);
+    const chips=list.length?list.map(sylChipHTML).join(''):'<div class="empty">등록된 글자 없음</div>';
+    const card=document.createElement('div');card.className='card';
+    const role=i===0?'성':(inputs.length>2?'이름'+i:'이름');
+    card.innerHTML=`<div class="grouphead">${role} '${val}' 검색 결과 · ${list.length}글자</div><div>${chips}</div>`;
+    box.appendChild(card);bindChips(card);
+  });
+  if(!any) box.innerHTML='<div class="card empty">자모를 입력하세요.</div>';
+  else markFavStars();
+}
+document.getElementById('advBtn').onclick=runAdv;
+
+/* ===================== 한자 찾기 ===================== */
+function hjChip(x,syl){
+  const after=isAfterBirth(x);
+  const dateLine=showDates()?`<div class="date">${x.d?x.d.replace(/-/g,'.')+' 추가':'기존 인명용'}</div>`:'';
+  const fav=`<button class="favbtn" data-syl="${syl}" data-h="${x.h}" data-m="${x.m}" title="이름 메모에 담기">☆</button>`;
+  return `<div class="hj${x.s?' sur':''}${after?' after':''}">${fav}<div class="char">${x.h}</div><div class="mean">${x.m}</div>${x.s?'<div class="badge">姓</div>':''}${dateLine}</div>`;
+}
+function hanjaCardHTML(syl,{surnameOnly=false}={}){
+  let list=HANJA_DB[syl]||[];
+  if(surnameOnly) list=list.filter(x=>x.s);
+  const birth=getBirth();
+  const usable=list.filter(x=>!isAfterBirth(x));
+  const after=list.filter(x=>isAfterBirth(x));
+  const head=`<div class="sylhead">${syl}<small>${surnameOnly?'성씨 한자':'인명용 한자'} ${usable.length}자${(birth&&after.length)?` · 이후 추가 ${after.length}자`:''}</small></div>`;
+  if(!list.length) return head+`<div class="empty">${surnameOnly?'성씨로 쓰이는 한자가 없습니다.':'등록된 한자가 없습니다.'}</div>`;
+  let html=head;
+  if(usable.length) html+=`<div>${usable.map(x=>hjChip(x,syl)).join('')}</div>`;
+  else html+=`<div class="empty">이 신청일 기준으로 사용할 수 있는 한자가 없습니다.</div>`;
+  if(birth && after.length){
+    html+=`<div class="afterhead">△ 신청일 이후 시행되어 인명용으로 추가된 한자 (당시엔 사용 불가)</div><div>${after.map(x=>hjChip(x,syl)).join('')}</div>`;
+  }
+  return html;
+}
+function runHanja(){
+  const raw=document.getElementById('hanjaInput').value.trim();
+  const box=document.getElementById('hanjaResult');box.innerHTML='';
+  const exact=document.getElementById('chkExact').checked;
+  const surMode=document.getElementById('chkSurname').checked;
+  const surCount=parseInt(document.getElementById('surCount').value)||0;
+  const chars=[...raw].filter(ch=>isSyllable(ch)||isCompatConsonant(ch)||isCompatVowel(ch));
+  if(!chars.length){box.innerHTML='<div class="card empty">한글 글자 또는 초성/모음을 입력하세요.</div>';return;}
+
+  chars.forEach((ch,i)=>{
+    const isSurPos = surMode && i<surCount;   // 성씨 위치
+    const jamo = !isSyllable(ch);   // 초성·모음 입력 여부
+    // 매칭 글자 목록
+    let sylList;
+    if(jamo){
+      if(isCompatConsonant(ch)) sylList=searchSyllables({cho:new Set([ch]),jung:new Set(),jong:new Set()});
+      else sylList=searchSyllables({cho:new Set(),jung:new Set(vAtoms(ch)),jong:new Set()});
+    } else if(exact) sylList=SYLLABLES.includes(ch)?[ch]:[];
+    else sylList=searchSyllables(consFromSyllable(ch));
+    const card=document.createElement('div');card.className='card';
+    let inner=`<div class="grouphead">'${ch}' ${isSurPos?'(성씨)':''} 검색 결과</div>`;
+    if(!sylList.length) inner+='<div class="empty">등록된 글자 없음</div>';
+    else inner+=sylList.map(s=>hanjaCardHTML(s,{surnameOnly:isSurPos})).join('');
+    card.innerHTML=inner;
+    box.appendChild(card);
+  });
+  markFavStars();
+}
+document.getElementById('hanjaBtn').onclick=runHanja;
+document.getElementById('hanjaInput').addEventListener('input',runHanja);
+document.getElementById('chkSurname').addEventListener('change',()=>{if(document.getElementById('hanjaInput').value.trim())runHanja();});
+document.getElementById('chkExact').addEventListener('change',()=>{if(document.getElementById('hanjaInput').value.trim())runHanja();});
+document.getElementById('surCount').addEventListener('change',()=>{if(document.getElementById('chkSurname').checked&&document.getElementById('hanjaInput').value.trim())runHanja();});
+
+/* ===================== 생년월일 변경 시 전체 갱신 ===================== */
+function refreshAll(){
+  if(document.getElementById('simpleInput').value.trim()) runSimple();
+  if([...advFields.querySelectorAll('input')].some(i=>i.value.trim())) runAdv();
+  if(document.getElementById('hanjaInput').value.trim()) runHanja();
+}
+document.getElementById('birthDate').addEventListener('change',refreshAll);
+document.getElementById('chkShowDate').addEventListener('change',refreshAll);
+document.getElementById('birthClear').onclick=()=>{document.getElementById('birthDate').value='';refreshAll();};
+
+/* ===================== 이름 메모 패널 ===================== */
+const memoRows=document.getElementById('memoRows');
+let rowSeq=0;
+
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),1600);
+}
+function entryStr(syl,h,m){return `${syl} ${h} (${m})`;}
+function memoLines(ta){return ta.value.split('\n').map(s=>s.trim()).filter(Boolean);}
+function activeRowTextarea(){const r=document.querySelector('.memorow.active');return r?r.querySelector('.rowmemo'):null;}
+
+// 활성 행 지정
+function setActiveRow(div){
+  document.querySelectorAll('.memorow').forEach(r=>r.classList.remove('active'));
+  document.querySelectorAll('.rowpick').forEach(p=>p.textContent='○');
+  if(div){div.classList.add('active');div.querySelector('.rowpick').textContent='●';}
+  markFavStars();
+}
+// 검색 결과의 별 상태를 현재 활성 행 내용과 동기화
+function markFavStars(){
+  const ta=activeRowTextarea();
+  const lines=ta?new Set(memoLines(ta)):new Set();
+  document.querySelectorAll('.favbtn').forEach(b=>{
+    const on=lines.has(entryStr(b.dataset.syl,b.dataset.h,b.dataset.m));
+    b.textContent=on?'★':'☆';b.classList.toggle('on',on);
+  });
+  document.querySelectorAll('.favsyl').forEach(b=>{
+    const on=lines.has(b.dataset.syl);
+    b.textContent=on?'★':'☆';b.classList.toggle('on',on);
+  });
+  updateFabDot();
+}
+// 한글 글자만 후보에 담기/빼기 (한자는 미정 — 글자만 기록)
+function toggleSylFav(b){
+  let ta=activeRowTextarea();
+  if(!ta){makeRow();ta=activeRowTextarea();}
+  const entry=b.dataset.syl;
+  const lines=memoLines(ta);
+  const i=lines.indexOf(entry);
+  if(i>=0){lines.splice(i,1);toast('메모에서 뺐어요');}
+  else{lines.push(entry);toast('“'+entry+'” 담음 (한자 미정)');openPanelIfMobile();}
+  ta.value=lines.join('\n');
+  markFavStars();
+}
+const DATE_PREFIX='📅 신청일';
+function updateFabDot(){
+  let n=0;document.querySelectorAll('.rowmemo').forEach(t=>n+=memoLines(t).filter(l=>!l.startsWith(DATE_PREFIX)).length);
+  const dot=document.getElementById('memoFabDot');
+  if(n){dot.textContent=n;dot.style.display='block';}else dot.style.display='none';
+}
+
+// 이름 후보 행 생성
+function makeRow(name){
+  rowSeq++;
+  const div=document.createElement('div');div.className='memorow';div.dataset.id='r'+rowSeq;
+  div.innerHTML=`
+    <div class="memorow-top">
+      <button class="rowpick" title="이 후보에 담기">○</button>
+      <input class="rowname" value="${name||('후보 '+rowSeq)}" maxlength="24">
+      <button class="rowcopy" title="이 후보 복사">⧉</button>
+      <button class="rowdel" title="삭제">×</button>
+    </div>
+    <textarea class="rowmemo" placeholder="즐겨찾기한 한자가 여기 담겨요. 직접 편집할 수도 있어요."></textarea>`;
+  memoRows.appendChild(div);
+  div.querySelector('.rowpick').onclick=()=>setActiveRow(div);
+  div.querySelector('.rowmemo').addEventListener('input',markFavStars);
+  div.querySelector('.rowmemo').addEventListener('focus',()=>setActiveRow(div));
+  div.querySelector('.rowname').addEventListener('focus',()=>setActiveRow(div));
+  div.querySelector('.rowcopy').onclick=()=>copyText(div.querySelector('.rowmemo').value,'후보를 복사했어요');
+  div.querySelector('.rowdel').onclick=()=>{
+    const wasActive=div.classList.contains('active');
+    div.remove();
+    if(wasActive) setActiveRow(document.querySelector('.memorow'));
+    else markFavStars();
+  };
+  setActiveRow(div);
+  return div;
+}
+document.getElementById('memoAddRow').onclick=()=>{makeRow();document.querySelector('.memorow.active .rowname').focus();};
+
+// 신청일 기록: 한 패널에 여러 캐릭터의 후보가 섞일 수 있으므로, 신청일도 여러 개를
+// 각각 라벨(예: 빨간머리남캐)과 함께 기록한다. 후보를 가리지 않도록 접을 수 있는 섹션.
+const memoDates=document.getElementById('memoDates');
+const datesList=document.getElementById('datesList');
+const datesCnt=document.getElementById('datesCnt');
+let dateRecords=[];   // {date, label}
+function renderDates(){
+  if(!dateRecords.length){memoDates.style.display='none';datesCnt.textContent='';return;}
+  memoDates.style.display='';
+  datesCnt.textContent='('+dateRecords.length+')';
+  datesList.innerHTML='';
+  dateRecords.forEach((rec,i)=>{
+    const row=document.createElement('div');row.className='daterow';
+    row.innerHTML=`<span class="dr-date">${rec.date}</span>`+
+      `<input class="dr-label" maxlength="30" placeholder="메모 (예: 빨간머리남캐)">`+
+      `<button class="dr-del" title="삭제">×</button>`;
+    const inp=row.querySelector('.dr-label');inp.value=rec.label||'';
+    inp.addEventListener('input',()=>{dateRecords[i].label=inp.value;});
+    row.querySelector('.dr-del').onclick=()=>{dateRecords.splice(i,1);renderDates();toast('신청일 기록을 지웠어요');};
+    datesList.appendChild(row);
+  });
+}
+document.getElementById('memoAddDate').onclick=()=>{
+  const b=getBirth();
+  if(!b){toast('먼저 작명 탭에서 신청일을 지정하세요');return;}
+  dateRecords.push({date:b,label:''});
+  memoDates.classList.remove('collapsed');   // 새 기록은 펼쳐서 라벨 입력 유도
+  renderDates();
+  const last=datesList.querySelector('.daterow:last-child .dr-label');
+  if(last)last.focus();
+  toast('신청일을 기록했어요');
+  openPanelIfMobile();
+};
+document.getElementById('datesToggle').onclick=()=>memoDates.classList.toggle('collapsed');
+// 신청일 미지정이면 📅 버튼 흐리게
+function syncDateBtn(){document.getElementById('memoAddDate').disabled=!getBirth();}
+document.getElementById('birthDate').addEventListener('change',syncDateBtn);
+document.getElementById('birthClear').addEventListener('click',syncDateBtn);
+syncDateBtn();
+
+// 즐겨찾기 별 클릭 (검색 결과 위임)
+document.getElementById('hanjaResult').addEventListener('click',e=>{
+  const b=e.target.closest('.favbtn');if(!b)return;
+  let ta=activeRowTextarea();
+  if(!ta){makeRow();ta=activeRowTextarea();}
+  const entry=entryStr(b.dataset.syl,b.dataset.h,b.dataset.m);
+  const lines=memoLines(ta);
+  const i=lines.indexOf(entry);
+  if(i>=0){lines.splice(i,1);toast('메모에서 뺐어요');}
+  else{lines.push(entry);toast('“'+entry+'” 담음');openPanelIfMobile();}
+  ta.value=lines.join('\n');
+  markFavStars();
+});
+
+// 복사 (클립보드)
+function copyText(text,okMsg){
+  if(!text||!text.trim()){toast('복사할 내용이 없어요');return;}
+  const done=()=>toast(okMsg||'복사했어요');
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text,done));
+  }else fallbackCopy(text,done);
+}
+function fallbackCopy(text,cb){
+  const t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.opacity='0';
+  document.body.appendChild(t);t.select();
+  try{document.execCommand('copy');cb&&cb();}catch(e){toast('복사 실패');}
+  document.body.removeChild(t);
+}
+document.getElementById('memoCopyAll').onclick=()=>{
+  const rows=[...document.querySelectorAll('.memorow')];
+  const blocks=rows.map(r=>{
+    const name=r.querySelector('.rowname').value.trim()||'후보';
+    const body=r.querySelector('.rowmemo').value.trim();
+    return body?`【${name}】\n${body}`:'';
+  }).filter(Boolean);
+  let head='';
+  if(dateRecords.length){
+    head='📅 신청일 기록\n'+dateRecords.map(r=>`- ${r.date}${r.label?' · '+r.label:''}`).join('\n')+'\n\n';
+  }
+  copyText(head+blocks.join('\n\n'),'전체 메모를 복사했어요');
+};
+
+// 모바일 패널 토글
+const panel=document.getElementById('memoPanel');
+function openPanelIfMobile(){if(window.matchMedia('(max-width:1099px)').matches)panel.classList.add('open');}
+document.getElementById('memoFab').onclick=()=>panel.classList.toggle('open');
+document.getElementById('memoClose').onclick=()=>panel.classList.remove('open');
+
+/* ===================== 도우미: AI 프롬프트 생성 ===================== */
+// 현재 선택된(●) 후보의 이름과 담긴 한자를 읽어 프롬프트를 만든다.
+function readActiveCandidate(){
+  const row=document.querySelector('.memorow.active');
+  if(!row) return null;
+  const name=(row.querySelector('.rowname').value||'').trim()||'후보';
+  const lines=memoLines(row.querySelector('.rowmemo'))
+    .filter(l=>!l.startsWith('📅'));
+  const resolved=[], undecided=[];
+  lines.forEach(l=>{
+    // "글자 한자 (뜻)" 형태 → 한자 확정 / 단일 글자 → 한자 미정
+    const m=l.match(/^(\S+)\s+(\S+)\s*\((.+)\)$/);
+    if(m) resolved.push({syl:m[1],h:m[2],m:m[3].trim()});
+    else undecided.push(l);
+  });
+  return {name,resolved,undecided};
+}
+function buildHelperPrompt(){
+  const ta=document.getElementById('helperPrompt');
+  const cand=readActiveCandidate();
+  const nameEl=document.getElementById('helperCandName');
+  if(!cand || (!cand.resolved.length && !cand.undecided.length)){
+    nameEl.textContent='—';
+    ta.value='아직 선택된 후보나 담긴 글자가 없어요.\n\n① ‘작명’ 탭에서 한자를 검색해 ☆로 후보에 담고\n② 오른쪽 이름 메모에서 원하는 후보를 ●로 선택한 뒤\n③ 이 화면에서 [프롬프트 새로 만들기]를 눌러보세요.';
+    return;
+  }
+  nameEl.textContent=cand.name;
+  const birth=document.getElementById('helperBirth').value;
+  const gender=document.getElementById('helperGender').value;
+
+  let p='';
+  p+='아래 캐릭터의 한글 이름과, 각 글자에 선택된 한자를 바탕으로 이름의 의미를 풀이해 주세요.\n\n';
+  p+='【캐릭터 정보】\n';
+  p+='- 이름(후보명): '+cand.name+'\n';
+  if(birth) p+='- 생년월일: '+birth+'\n';
+  if(gender) p+='- 성별: '+(gender==='직접입력'?'':gender)+'\n';
+  p+='\n';
+
+  if(cand.resolved.length){
+    p+='【선택한 한자】\n';
+    cand.resolved.forEach(e=>{ p+='- '+e.syl+' : '+e.h+' ('+e.m+')\n'; });
+    p+='\n';
+  }
+  if(cand.undecided.length){
+    p+='【한자 미정 글자 (읽는 소리만 정함 — 어울리는 한자를 추천해 주세요)】\n';
+    p+='- '+cand.undecided.join(', ')+'\n\n';
+  }
+
+  p+='【요청사항】\n';
+  p+='1. 선택한 한자 각각의 뜻과 어감을 풀이해 주세요.\n';
+  p+='2. 이름 전체를 이어서 읽었을 때의 의미와, 이름이 주는 인상·성격·분위기를 설명해 주세요.\n';
+  if(cand.undecided.length) p+='3. 한자 미정 글자에는 인명용으로 쓸 수 있는 한자 후보를 2~3개씩 뜻과 함께 추천해 주세요.\n';
+  p+((cand.undecided.length?'4':'3')+'. 위 정보(생년월일·성별 등)를 고려해 이 이름이 캐릭터에 잘 어울리는지, 보완하면 좋을 점이 있는지 조언해 주세요.\n');
+
+  ta.value=p.trimEnd();
+}
+document.getElementById('helperGen').onclick=buildHelperPrompt;
+document.getElementById('helperCopy').onclick=()=>copyText(document.getElementById('helperPrompt').value,'프롬프트를 복사했어요');
+document.getElementById('helperBirth').addEventListener('change',buildHelperPrompt);
+document.getElementById('helperGender').addEventListener('change',buildHelperPrompt);
+// 도우미 탭을 열면 현재 후보로 프롬프트 자동 생성
+document.querySelector('.navbtn[data-page="helper"]').addEventListener('click',buildHelperPrompt);
+// 작명 탭의 신청일을 도우미 생년월일 기본값으로 반영(비어 있을 때만)
+document.getElementById('birthDate').addEventListener('change',()=>{
+  const hb=document.getElementById('helperBirth');
+  if(!hb.value && getBirth()) hb.value=getBirth();
+});
+
+// 최초 행 1개
+makeRow('후보 1');
+
+/* ===================== 개정연혁 렌더 (스프레드시트) ===================== */
+function renderHistory(){
+  const tb=document.getElementById('historyBody');
+  if(!tb || !HISTORY.length) return;
+  const esc=s=>String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  tb.innerHTML=HISTORY.map((r,i)=>{
+    const cur=i===HISTORY.length-1;                       // 마지막(최신) 행 강조
+    const addRaw=String(r.added==null?'':r.added).trim();
+    const added=/^\d+$/.test(addRaw)?('+'+addRaw):addRaw;  // 숫자면 +표기
+    return `<tr class="${cur?'cur':''}">`+
+      `<td>${esc(r.year)}</td><td>${esc(r.effDate)}</td>`+
+      `<td class="add">${esc(added)}</td><td>${esc(r.total)}</td>`+
+      `<td class="note">${esc(r.law)}</td><td class="note">${esc(r.note)||'—'}</td></tr>`;
+  }).join('');
+}
+
+/* ===================== 스프레드시트 데이터 로드 ===================== */
+async function loadData(){
+  const status=document.getElementById('dataStatus');
+  status.className='datastatus loading';
+  status.textContent='📡 스프레드시트에서 데이터를 불러오는 중…';
+  try{
+    if(!SHEET_API_URL || SHEET_API_URL.indexOf('PASTE')===0)
+      throw new Error('SHEET_API_URL 이 설정되지 않았습니다. 코드의 SHEET_API_URL 을 배포한 웹앱 주소로 바꾸세요.');
+    const res=await fetch(SHEET_API_URL,{method:'GET',redirect:'follow'});
+    if(!res.ok) throw new Error('서버 응답 오류 (HTTP '+res.status+')');
+    const data=await res.json();
+    if(data.error) throw new Error(data.error);
+
+    HANJA_DB=data.hanja||{};
+    SYLLABLES=Object.keys(HANJA_DB);
+    HISTORY=data.history||[];
+    renderHistory();
+    refreshAll();
+
+    status.className='datastatus ok';
+    const m=data.meta||{};
+    status.textContent='✓ 스프레드시트 연동 완료 · 한글 '+(m.syllableCount||SYLLABLES.length)+'자 / 한자 '+(m.hanjaCount||'?')+'자';
+    setTimeout(()=>{status.style.display='none';},2600);
+  }catch(err){
+    HANJA_DB={};SYLLABLES=[];
+    status.className='datastatus err';
+    status.innerHTML='⚠ 데이터를 불러오지 못했습니다: <b>'+String(err.message||err)+'</b><br>'
+      +'· 코드의 <code>SHEET_API_URL</code> 이 배포한 웹앱 주소인지 확인하세요.<br>'
+      +'· 웹앱 배포 시 액세스 권한을 <b>“모든 사용자”</b> 로 설정했는지 확인하세요.<br>'
+      +'· 스프레드시트에 <b>한자 목록 탭</b>(헤더: 한글·한자)이 있는지 확인하세요.';
+  }
+}
+// 스프레드시트에서 데이터 불러오기
+loadData();
+</script>
+</body>
+</html>
