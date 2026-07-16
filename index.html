@@ -24,8 +24,8 @@
   .topnav{position:sticky;top:0;z-index:20;background:var(--card);border-bottom:1px solid var(--line);
           display:flex;justify-content:center;gap:6px;padding:8px 12px;flex-wrap:wrap;
           box-shadow:0 1px 6px rgba(0,0,0,.04)}
-  .navbtn{padding:9px 20px;border:1px solid var(--line);background:#fff;border-radius:20px;
-          cursor:pointer;font-size:15px;font-weight:600;color:var(--sub);transition:.15s}
+  .navbtn{width:104px;padding:9px 8px;border:1px solid var(--line);background:#fff;border-radius:20px;
+          cursor:pointer;font-size:15px;font-weight:600;color:var(--sub);transition:.15s;text-align:center}
   .navbtn:hover{border-color:var(--accent)}
   .navbtn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
   .page{display:none}
@@ -324,9 +324,9 @@
     <div id="sub-simple">
       <div class="card">
         <div class="row">
-          <input type="text" id="simpleInput" placeholder="예: ㅈ차ㄹ / 자 / 말 / 장자">
+          <input type="text" id="simpleInput" placeholder="예: ㅎ길ㄷ">
           <button class="go" id="simpleBtn">검색</button>
-          <span class="helptip" aria-label="간편 검색 설명">?<span class="tip">완성된 글자와 자음·모음을 섞어서 입력할 수 있어요. 초성(ㅈ), 한 글자(자), 여러 글자(장자) 모두 가능.</span></span>
+          <span class="helptip" aria-label="간편 검색 설명">?<span class="tip">완성된 글자와 자음·모음을 섞어서 입력할 수 있어요. 초성(ㄱ), 한 글자(가), 여러 글자(김이름) 모두 가능.</span></span>
         </div>
       </div>
       <div id="simpleResult"></div>
