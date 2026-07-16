@@ -174,9 +174,49 @@
   .datastatus.err{display:block;background:var(--surname-soft);color:var(--surname);border:1px solid var(--surname);
                   text-align:left;line-height:1.6}
   .datastatus.err code{background:#fff;padding:1px 5px;border-radius:5px}
+
+  /* ===== 초기 로딩 오버레이 ===== */
+  #loadOverlay{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:22px;
+    background:radial-gradient(circle at 50% 38%, var(--card), var(--bg) 70%);
+    transition:opacity .5s ease, visibility .5s ease}
+  #loadOverlay.hide{opacity:0;visibility:hidden;pointer-events:none}
+  .lo-seal{position:relative;width:96px;height:96px}
+  .lo-ring{position:absolute;inset:0;border-radius:50%;
+    border:3px solid var(--accent-soft);border-top-color:var(--accent);
+    animation:lo-spin 1s linear infinite}
+  .lo-ring.r2{inset:14px;border-width:2px;border-top-color:transparent;border-left-color:var(--accent);
+    animation:lo-spin 1.6s linear infinite reverse;opacity:.7}
+  .lo-char{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:34px;color:var(--accent);font-weight:700;animation:lo-pulse 1.8s ease-in-out infinite}
+  .lo-title{font-size:16px;font-weight:700;color:var(--ink)}
+  .lo-sub{font-size:13px;color:var(--sub)}
+  .lo-dots span{display:inline-block;width:8px;height:8px;margin:0 4px;border-radius:50%;
+    background:var(--accent);opacity:.35;animation:lo-bounce 1.2s ease-in-out infinite}
+  .lo-dots span:nth-child(2){animation-delay:.2s}
+  .lo-dots span:nth-child(3){animation-delay:.4s}
+  @keyframes lo-spin{to{transform:rotate(360deg)}}
+  @keyframes lo-pulse{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.12);opacity:1}}
+  @keyframes lo-bounce{0%,100%{transform:translateY(0);opacity:.35}50%{transform:translateY(-7px);opacity:1}}
+  @media (prefers-reduced-motion: reduce){
+    .lo-ring,.lo-ring.r2,.lo-char,.lo-dots span{animation-duration:2.4s}
+  }
 </style>
 </head>
 <body>
+<div id="loadOverlay">
+  <div class="lo-seal" aria-hidden="true">
+    <div class="lo-ring"></div>
+    <div class="lo-ring r2"></div>
+    <div class="lo-char">名</div>
+  </div>
+  <div style="text-align:center">
+    <div class="lo-title">한자 작명 데이터를 준비하고 있어요</div>
+    <div class="lo-sub">스프레드시트에서 인명용 한자를 불러오는 중입니다</div>
+  </div>
+  <div class="lo-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+</div>
+
 <header>
   <h1>한자 작명 도우미</h1>
   <p>캐릭터의 한글 이름에 어울리는 한자를 찾아보세요</p>
@@ -450,7 +490,7 @@ function consFromJamo(str){
    데이터는 Apps Script 웹앱(JSON)에서 실시간으로 불러옵니다.
    ▼▼▼ 아래 SHEET_API_URL 을 배포한 웹앱 주소로 바꾸세요 ▼▼▼
    각 한자 항목: h=한자, m=뜻, s=성씨 여부, d=인명용 추가 시행일(YYYY-MM-DD) */
-const SHEET_API_URL='https://script.google.com/macros/s/AKfycbzjkzeQNeA_KXtM2bLKyQr-6gxzDlNsE2Av-F9NgCo2hZdhnq53wMB7o5LHKEAZ9OLu/exec';
+const SHEET_API_URL='https://script.google.com/macros/s/AKfycbxn-fv6PeabfEZevxotL9MMg7uVw316FwZ6D8PfYhPWdYKOs2Vzg4Xa0KyXGOolqhiN/exec';
 let HANJA_DB={};      // { '자':[{h,m,s,d}], ... } — 로드 후 채워짐
 let SYLLABLES=[];     // Object.keys(HANJA_DB)
 let HISTORY=[];       // 개정연혁 행 배열
@@ -979,10 +1019,13 @@ function sanitizeHanjaDB(){
   return removed;
 }
 
+function hideLoadOverlay(){
+  const ov=document.getElementById('loadOverlay');
+  if(ov) ov.classList.add('hide');
+}
 async function loadData(){
   const status=document.getElementById('dataStatus');
-  status.className='datastatus loading';
-  status.textContent='📡 스프레드시트에서 데이터를 불러오는 중…';
+  status.className='datastatus';   // 로딩 표시는 전체화면 오버레이(#loadOverlay)가 담당
   try{
     if(!SHEET_API_URL || SHEET_API_URL.indexOf('PASTE')===0)
       throw new Error('SHEET_API_URL 이 설정되지 않았습니다. 코드의 SHEET_API_URL 을 배포한 웹앱 주소로 바꾸세요.');
@@ -1002,9 +1045,11 @@ async function loadData(){
     const m=data.meta||{};
     status.textContent='✓ 스프레드시트 연동 완료 · 한글 '+(m.syllableCount||SYLLABLES.length)+'자 / 한자 '+(m.hanjaCount||'?')+'자'
       +(brokenRemoved?` (표기 불가 ${brokenRemoved}자 제외)`:'');
+    hideLoadOverlay();               // 데이터 준비 완료 → 본 화면 공개
     setTimeout(()=>{status.style.display='none';},2600);
   }catch(err){
     HANJA_DB={};SYLLABLES=[];
+    hideLoadOverlay();               // 오류 안내는 본 화면 배너로 표시
     status.className='datastatus err';
     status.innerHTML='⚠ 데이터를 불러오지 못했습니다: <b>'+String(err.message||err)+'</b><br>'
       +'· 코드의 <code>SHEET_API_URL</code> 이 배포한 웹앱 주소인지 확인하세요.<br>'
