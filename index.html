@@ -4,9 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>한자 작명 도우미</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif+KR:wght@400;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
   :root{
     --bg:#f6f3ec; --card:#fffdf8; --ink:#2b2620; --sub:#8a8071;
@@ -15,7 +14,10 @@
   }
   *{box-sizing:border-box}
   html{overflow-y:scroll;scrollbar-gutter:stable}
-  body{margin:0;font-family:"Noto Sans KR","Malgun Gothic",sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
+  body{margin:0;font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Malgun Gothic",sans-serif;
+       background:var(--bg);color:var(--ink);line-height:1.5;word-break:keep-all}
+  button,input,select,textarea{font-family:inherit}
+  .ico{width:15px;height:15px;flex:none;vertical-align:-2px}
   header{padding:22px 20px 10px;text-align:center}
   header h1{margin:0;font-size:24px;letter-spacing:-.5px}
   header p{margin:6px 0 0;color:var(--sub);font-size:13px}
@@ -35,9 +37,9 @@
   .about-card ul{margin:6px 0 10px;padding-left:20px}
   .about-card li{font-size:14px;margin-bottom:5px}
   .htable{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
-  .htable th,.htable td{border:1px solid var(--line);padding:8px 10px;text-align:center}
+  .htable th,.htable td{border:1px solid var(--line);padding:8px 10px;text-align:center;white-space:nowrap}
   .htable th{background:var(--accent-soft);color:var(--accent);font-weight:700}
-  .htable td.note{text-align:left;color:var(--sub);font-size:12px}
+  .htable td.note{text-align:left;color:var(--sub);font-size:12px;white-space:normal;word-break:keep-all;min-width:150px;line-height:1.55}
   .htable tr.cur td{background:var(--surname-soft);font-weight:600}
   .htable td.add{color:var(--accent);font-weight:700}
   .tablewrap{overflow-x:auto}
@@ -57,19 +59,22 @@
   .subtab{padding:8px 14px;border:1px solid var(--line);border-radius:20px;background:#fff;cursor:pointer;font-size:13px;color:var(--sub)}
   .subtab.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
   .hint{font-size:12px;color:var(--sub);margin:6px 0 0}
-  .sylchip{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;margin:4px;border:1px solid var(--line);
-           border-radius:10px;background:#fff;cursor:pointer;font-size:16px;font-weight:600}
-  .sylchip .cnt{font-size:11px;color:var(--sub);font-weight:400}
+  .sylchip{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 12px;margin:4px;
+           height:42px;min-width:122px;border:1px solid var(--line);vertical-align:top;
+           border-radius:10px;background:#fff;cursor:pointer;font-size:16px;font-weight:600;transition:border-color .15s}
+  .sylchip .cnt{font-size:11px;color:var(--sub);font-weight:400;white-space:nowrap}
   .sylchip:hover{border-color:var(--accent)}
   .sylchip.zero{opacity:.5;cursor:default}
   .grouphead{font-size:13px;color:var(--accent);font-weight:700;margin:2px 0 6px;border-bottom:1px dashed var(--line);padding-bottom:4px}
   .empty{color:var(--sub);font-size:13px;padding:6px 2px}
-  .hj{position:relative;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;width:64px;padding:18px 4px 8px;margin:5px;
+  .hj{position:relative;display:inline-flex;flex-direction:column;align-items:center;justify-content:flex-start;
+      width:68px;min-height:100px;padding:20px 4px 8px;margin:5px;vertical-align:top;
       border:1px solid var(--line);border-radius:10px;background:#fff}
   .hj.sur{border-color:var(--surname);background:var(--surname-soft)}
   .hj.after{opacity:.6;border-style:dashed;background:#faf6ee}
-  .hj .char{font-size:26px;line-height:1;font-family:"Noto Serif KR","Batang","Apple SD Gothic Neo",serif}
-  .hj .mean{font-size:11px;color:var(--sub);margin-top:5px;text-align:center}
+  .hj .char{font-size:26px;line-height:1;font-family:inherit;font-weight:500}
+  .hj .mean{font-size:11px;color:var(--sub);margin-top:6px;text-align:center;line-height:1.35;min-height:30px;
+            display:flex;align-items:center;justify-content:center;word-break:keep-all}
   .hj .badge{font-size:9px;color:#fff;background:var(--surname);border-radius:6px;padding:1px 5px;margin-top:4px}
   .hj .date{font-size:9px;color:var(--accent);margin-top:4px}
   .afterhead{font-size:12px;color:var(--surname);font-weight:700;margin:10px 0 4px;border-top:1px dashed var(--line);padding-top:8px}
@@ -148,7 +153,10 @@
              display:flex;flex-direction:column;z-index:30}
   .memohead{display:flex;align-items:center;justify-content:space-between;
             padding:14px 14px 12px;border-bottom:1px solid var(--line)}
-  .memohead .ttl{font-size:15px;font-weight:700;color:var(--accent)}
+  .memohead .ttl{font-size:15px;font-weight:700;color:var(--accent);display:inline-flex;align-items:center;gap:6px}
+  .memofab .ico{width:23px;height:23px}
+  .dates-head .ico{width:13px;height:13px}
+  .memohint .ico{width:12px;height:12px}
   .memohead .acts{display:flex;gap:6px}
   .iconbtn{border:1px solid var(--line);background:#fff;border-radius:8px;width:32px;height:32px;
            cursor:pointer;font-size:15px;color:var(--ink);display:inline-flex;align-items:center;justify-content:center}
@@ -437,26 +445,26 @@
 <!-- ===================== 이름 메모 패널 (고정) ===================== -->
 <aside class="memopanel" id="memoPanel">
   <div class="memohead">
-    <span class="ttl">📝 이름 메모</span>
+    <span class="ttl"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>이름 메모</span>
     <div class="acts">
-      <button class="iconbtn" id="memoAddDate" title="작명 탭의 신청일을 이 캐릭터에 기록">📅</button>
+      <button class="iconbtn" id="memoAddDate" title="작명 탭의 신청일을 이 캐릭터에 기록"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></button>
       <button class="iconbtn" id="memoCopyAll" title="전체 복사">⧉</button>
       <button class="iconbtn" id="memoClose" title="닫기">×</button>
     </div>
   </div>
   <div class="memodates" id="memoDates" style="display:none">
     <button class="dates-head" id="datesToggle" title="접기/펼치기">
-      <span class="dt-caret">▾</span><span>📅 신청일 기록</span><span class="dt-cnt" id="datesCnt"></span>
+      <span class="dt-caret">▾</span><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>신청일 기록</span><span class="dt-cnt" id="datesCnt"></span>
     </button>
     <div class="dates-list" id="datesList"></div>
   </div>
-  <p class="memohint">한자의 ☆는 <b>지금 선택된(●) 후보</b>에 “한글 한자(뜻)”을, 한글 글자 칩의 ☆는 <b>한글 글자만</b>(한자 미정) 담아요. 📅는 작명 탭의 신청일을 기록으로 추가합니다(캐릭터별로 여러 개, 메모도 가능).</p>
+  <p class="memohint">한자의 ☆는 <b>지금 선택된(●) 후보</b>에 “한글 한자(뜻)”을, 한글 글자 칩의 ☆는 <b>한글 글자만</b>(한자 미정) 담아요. 달력(<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>) 버튼은 작명 탭의 신청일을 기록으로 추가합니다(캐릭터별로 여러 개, 메모도 가능).</p>
   <div class="memorows" id="memoRows"></div>
   <div class="memofoot">
     <button class="addrow" id="memoAddRow">＋ 이름 후보 추가</button>
   </div>
 </aside>
-<button class="memofab" id="memoFab" title="이름 메모 열기">📝<span class="dot" id="memoFabDot"></span></button>
+<button class="memofab" id="memoFab" title="이름 메모 열기"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span class="dot" id="memoFabDot"></span></button>
 <div class="toast" id="toast"></div>
 
 <script>
