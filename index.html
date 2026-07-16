@@ -96,6 +96,11 @@
   .legend .sw{display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--surname-soft);border:1px solid var(--surname);vertical-align:-2px;margin-right:4px}
   .checkrow{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:14px}
   .checkrow label{display:flex;gap:6px;align-items:center;cursor:pointer}
+  .sortbtn{margin-left:auto;display:inline-flex;align-items:center;gap:5px;padding:5px 12px;
+    border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:9px;
+    font-size:13px;cursor:pointer;font-family:inherit;white-space:nowrap}
+  .sortbtn:hover{border-color:var(--accent);color:var(--accent)}
+  .sortbtn .arrow{font-size:11px;color:var(--accent)}
 
   /* ===== 커스텀 체크박스 ===== */
   input[type=checkbox]{
@@ -358,6 +363,7 @@
         <label><input type="checkbox" id="chkSurname"> 성씨만 보기<span class="helptip" aria-label="성씨 표시 설명">?<span class="tip"><span class="sw"></span>성씨로도 쓰이는 한자 (姓 표시). 검색 결과에서 붉게 강조되고 <b>姓</b> 뱃지가 붙어요.</span></span></label>
         <label>성씨 <input type="number" id="surCount" min="0" max="2" value="1"> 자</label>
         <label><input type="checkbox" id="chkExact"> 글자 완벽히 맞춤<span class="helptip" aria-label="글자 완벽히 맞춤 설명">?<span class="tip">완성된 글자만 검색됩니다. '글자 완벽히 맞춤'을 끄면 초성·중성이 비슷한 글자도 함께 나와요.</span></span></label>
+        <button id="hanjaSortBtn" class="sortbtn" title="한글 뜻 기준 정렬 방향 바꾸기" aria-label="한글 뜻 기준 정렬 방향 바꾸기">한글 뜻 <span class="arrow">▲</span> 오름차순</button>
       </div>
     </div>
     <div id="hanjaResult"></div>
@@ -717,12 +723,17 @@ function hjChip(x,syl){
   const fav=`<button class="favbtn" data-syl="${syl}" data-h="${x.h}" data-m="${x.m}" title="이름 메모에 담기">☆</button>`;
   return `<div class="hj${x.s?' sur':''}${after?' after':''}">${fav}<div class="char">${x.h}</div><div class="mean">${x.m}</div>${x.s?'<div class="badge">姓</div>':''}${dateLine}</div>`;
 }
+let hanjaSortDir='asc';   // 한글 뜻 기준 정렬 방향: 'asc' 오름차순 / 'desc' 내림차순
+function sortByMean(arr){
+  const dir=hanjaSortDir==='asc'?1:-1;
+  return arr.slice().sort((a,b)=>dir*(a.m||'').localeCompare(b.m||'','ko'));
+}
 function hanjaCardHTML(syl,{surnameOnly=false}={}){
   let list=HANJA_DB[syl]||[];
   if(surnameOnly) list=list.filter(x=>x.s);
   const birth=getBirth();
-  const usable=list.filter(x=>!isAfterBirth(x));
-  const after=list.filter(x=>isAfterBirth(x));
+  const usable=sortByMean(list.filter(x=>!isAfterBirth(x)));
+  const after=sortByMean(list.filter(x=>isAfterBirth(x)));
   const head=`<div class="sylhead">${syl}<small>${surnameOnly?'성씨 한자':'인명용 한자'} ${usable.length}자${(birth&&after.length)?` · 이후 추가 ${after.length}자`:''}</small></div>`;
   if(!list.length) return head+`<div class="empty">${surnameOnly?'성씨로 쓰이는 한자가 없습니다.':'등록된 한자가 없습니다.'}</div>`;
   let html=head;
@@ -761,6 +772,13 @@ function runHanja(){
   });
   markFavStars();
 }
+const hanjaSortBtn=document.getElementById('hanjaSortBtn');
+hanjaSortBtn.onclick=()=>{
+  hanjaSortDir=hanjaSortDir==='asc'?'desc':'asc';
+  hanjaSortBtn.querySelector('.arrow').textContent=hanjaSortDir==='asc'?'▲':'▼';
+  hanjaSortBtn.childNodes[hanjaSortBtn.childNodes.length-1].textContent=hanjaSortDir==='asc'?' 오름차순':' 내림차순';
+  if(document.getElementById('hanjaInput').value.trim()) runHanja();
+};
 document.getElementById('hanjaBtn').onclick=runHanja;
 document.getElementById('hanjaInput').addEventListener('input',runHanja);
 document.getElementById('chkSurname').addEventListener('change',()=>{if(document.getElementById('hanjaInput').value.trim())runHanja();});
