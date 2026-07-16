@@ -91,6 +91,42 @@
   .legend .sw{display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--surname-soft);border:1px solid var(--surname);vertical-align:-2px;margin-right:4px}
   .checkrow{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:14px}
   .checkrow label{display:flex;gap:6px;align-items:center;cursor:pointer}
+
+  /* ===== 커스텀 체크박스 ===== */
+  input[type=checkbox]{
+    appearance:none;-webkit-appearance:none;margin:0;flex:none;
+    width:20px;height:20px;border:1.6px solid var(--line);border-radius:6px;
+    background:#fff;cursor:pointer;position:relative;vertical-align:middle;
+    transition:background .15s,border-color .15s,box-shadow .15s}
+  input[type=checkbox]:hover{border-color:var(--accent)}
+  input[type=checkbox]:checked{background:var(--accent);border-color:var(--accent)}
+  input[type=checkbox]:checked::after{
+    content:"";position:absolute;left:6px;top:2.5px;width:5px;height:9px;
+    border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+  input[type=checkbox]:focus-visible{outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+  input[type=checkbox]:active{transform:scale(.92)}
+
+  /* ===== 물음표 도움말 툴팁 ===== */
+  .helptip{position:relative;display:inline-flex;align-items:center;justify-content:center;
+    width:17px;height:17px;margin-left:5px;border-radius:50%;flex:none;vertical-align:middle;
+    border:1px solid var(--accent);background:var(--card);color:var(--accent);
+    font-size:11px;font-weight:700;line-height:1;cursor:help;user-select:none;
+    transition:background .15s,color .15s}
+  .helptip:hover,.helptip.open{background:var(--accent);color:#fff}
+  .helptip:focus-visible{outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+  .helptip .tip{position:absolute;bottom:calc(100% + 9px);left:50%;transform:translateX(-50%);
+    width:max-content;max-width:min(260px,78vw);background:var(--ink);color:#fff;
+    font-size:12px;font-weight:400;line-height:1.55;text-align:left;
+    padding:9px 12px;border-radius:9px;box-shadow:0 5px 16px rgba(0,0,0,.24);
+    opacity:0;visibility:hidden;pointer-events:none;white-space:normal;z-index:90;
+    transition:opacity .15s,visibility .15s}
+  .helptip .tip b{color:#ffe0b8}
+  .helptip .tip .sw{display:inline-block;width:12px;height:12px;border-radius:3px;
+    background:var(--surname-soft);border:1px solid var(--surname);vertical-align:-2px;margin-right:4px}
+  .helptip .tip::after{content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);
+    border:6px solid transparent;border-top-color:var(--ink)}
+  .helptip:hover .tip,.helptip.open .tip{opacity:1;visibility:visible}
+  .checkrow label .helptip{margin-left:1px}
   .helper-links{list-style:none;padding:0;margin:8px 0 0}
   .helper-links li{margin-bottom:10px}
   .helper-links a{display:inline-block;padding:11px 14px;border:1px solid var(--line);border-radius:10px;
@@ -257,12 +293,11 @@
 <div class="wrap">
   <div class="card" id="birthCard">
     <div class="row">
-      <label class="bl">출생신고·개명 신청일</label>
+      <label class="bl">출생신고·개명 신청일<span class="helptip" aria-label="출생신고·개명 신청일 설명">?<span class="tip">출생신고 또는 개명 신청일을 지정하면, 시행일이 그날 이후인(=당시엔 쓸 수 없던) 한자를 검색 결과에서 따로 구분합니다. 시행일 당일에 신청한 경우는 사용 가능으로 처리됩니다.</span></span></label>
       <input type="date" id="birthDate">
       <button class="ghost" id="birthClear">초기화</button>
       <label style="font-size:13px;display:flex;gap:5px;align-items:center;cursor:pointer"><input type="checkbox" id="chkShowDate"> 한자 추가(시행일) 날짜 표시</label>
     </div>
-    <p class="hint">출생신고 또는 개명 신청일을 지정하면, 시행일이 그날 이후인(=당시엔 쓸 수 없던) 한자를 검색 결과에서 따로 구분합니다. 시행일 당일에 신청한 경우는 사용 가능으로 처리됩니다.</p>
   </div>
 
   <div class="tabs">
@@ -283,8 +318,8 @@
         <div class="row">
           <input type="text" id="simpleInput" placeholder="예: ㅈ차ㄹ / 자 / 말 / 장자">
           <button class="go" id="simpleBtn">검색</button>
+          <span class="helptip" aria-label="간편 검색 설명">?<span class="tip">완성된 글자와 자음·모음을 섞어서 입력할 수 있어요. 초성(ㅈ), 한 글자(자), 여러 글자(장자) 모두 가능.</span></span>
         </div>
-        <p class="hint">완성된 글자와 자음·모음을 섞어서 입력할 수 있어요. 초성(ㅈ), 한 글자(자), 여러 글자(장자) 모두 가능.</p>
       </div>
       <div id="simpleResult"></div>
     </div>
@@ -292,11 +327,11 @@
     <!-- 심화 검색 -->
     <div id="sub-adv" style="display:none">
       <div class="card">
-        <p class="hint" style="margin-top:0">자음·모음을 하나씩 입력해 검색합니다. 성과 이름을 한 글자씩 나눠서 넣으세요. (아래 자판 사용 권장)</p>
         <div id="advFields"></div>
         <div class="row" style="margin-top:6px">
           <button class="ghost" id="advAdd">＋ 글자 칸 추가</button>
           <button class="go" id="advBtn" style="margin-left:auto">검색</button>
+          <span class="helptip" aria-label="심화 검색 설명">?<span class="tip">자음·모음을 하나씩 입력해 검색합니다. 성과 이름을 한 글자씩 나눠서 넣으세요. (아래 자판 사용 권장)</span></span>
         </div>
         <div class="keypad" id="keypad"></div>
       </div>
@@ -312,12 +347,10 @@
         <button class="go" id="hanjaBtn">검색</button>
       </div>
       <div class="checkrow">
-        <label><input type="checkbox" id="chkSurname"> 성씨만 보기</label>
+        <label><input type="checkbox" id="chkSurname"> 성씨만 보기<span class="helptip" aria-label="성씨 표시 설명">?<span class="tip"><span class="sw"></span>성씨로도 쓰이는 한자 (姓 표시). 검색 결과에서 붉게 강조되고 <b>姓</b> 뱃지가 붙어요.</span></span></label>
         <label>성씨 <input type="number" id="surCount" min="0" max="2" value="1"> 자</label>
-        <label><input type="checkbox" id="chkExact"> 글자 완벽히 맞춤</label>
+        <label><input type="checkbox" id="chkExact"> 글자 완벽히 맞춤<span class="helptip" aria-label="글자 완벽히 맞춤 설명">?<span class="tip">완성된 글자만 검색됩니다. '글자 완벽히 맞춤'을 끄면 초성·중성이 비슷한 글자도 함께 나와요.</span></span></label>
       </div>
-      <div class="legend"><span class="sw"></span> 성씨로도 쓰이는 한자 (姓 표시)</div>
-      <p class="hint">완성된 글자만 검색됩니다. '글자 완벽히 맞춤'을 끄면 초성·중성이 비슷한 글자도 함께 나와요.</p>
     </div>
     <div id="hanjaResult"></div>
   </section>
@@ -347,15 +380,15 @@
           <option value="여성">여성</option>
           <option value="직접입력">직접입력</option>
         </select>
+        <span class="helptip" aria-label="생년월일·성별 설명">?<span class="tip">생년월일과 성별은 <b>공란이어도 됩니다.</b> 입력하면 프롬프트에 함께 담겨, 더 어울리는 해석을 받을 수 있어요.</span></span>
       </div>
-      <p class="hint" style="margin-bottom:12px">생년월일과 성별은 <b>공란이어도 됩니다.</b> 입력하면 프롬프트에 함께 담겨, 더 어울리는 해석을 받을 수 있어요.</p>
 
       <div class="row" style="margin-bottom:6px">
         <button class="go" id="helperGen">프롬프트 새로 만들기</button>
         <button class="go" id="helperCopy" style="margin-left:auto;background:var(--surname)">⧉ 프롬프트 복사</button>
+        <span class="helptip" aria-label="프롬프트 수정 안내">?<span class="tip">필요하면 아래 프롬프트를 직접 수정한 뒤 복사해도 됩니다.</span></span>
       </div>
       <textarea id="helperPrompt" class="rowmemo" style="min-height:260px;width:100%;background:#faf6ee" placeholder="선택된 후보가 없으면 여기에 안내가 표시됩니다."></textarea>
-      <p class="hint">필요하면 위 프롬프트를 직접 수정한 뒤 복사해도 됩니다.</p>
     </div>
 
     <div class="card about-card">
@@ -1098,6 +1131,24 @@ document.addEventListener('input',function(e){
     try{ t.setSelectionRange(pos,pos); }catch(_){}
   }
 },true);
+
+/* ===================== 물음표 도움말 툴팁 (호버 + 터치/클릭) ===================== */
+// 호버는 CSS가 담당. 터치·클릭 환경에서는 탭하면 열리고, 바깥을 누르면 닫힙니다.
+document.querySelectorAll('.helptip').forEach(t=>{
+  t.setAttribute('tabindex','0');
+  t.setAttribute('role','button');
+  t.addEventListener('click',e=>{
+    e.stopPropagation();
+    const wasOpen=t.classList.contains('open');
+    document.querySelectorAll('.helptip.open').forEach(x=>x.classList.remove('open'));
+    if(!wasOpen) t.classList.add('open');
+  });
+  t.addEventListener('keydown',e=>{
+    if(e.key==='Enter'||e.key===' '){e.preventDefault();t.click();}
+    else if(e.key==='Escape') t.classList.remove('open');
+  });
+});
+document.addEventListener('click',()=>document.querySelectorAll('.helptip.open').forEach(x=>x.classList.remove('open')));
 
 // 스프레드시트에서 데이터 불러오기
 loadData();
