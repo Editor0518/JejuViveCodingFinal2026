@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>캐릭터 이름을 위한 한자 작명 도우미</title>
+<style>
+  /* ===== 갈색 계열 팔레트 (모든 색은 이 변수에서만 사용) ===== */
+  :root{
+    --bg:#FBF7F0;          /* 크림 배경 */
+    --ink:#3E2C23;         /* 본문 진한 갈색 */
+    --ink-soft:#6B5647;    /* 보조 텍스트 */
+    --brown-900:#4B3226;
+    --brown-700:#6F4E37;   /* 커피 */
+    --brown-500:#8B5E3C;
+    --brown-400:#A9744F;
+    --brown-300:#C89B7B;
+    --brown-200:#E3CDB8;
+    --line:#DCC9B6;        /* 옅은 구분선 */
+    --accent:#A0522D;      /* 시에나 강조 */
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+    background:var(--brown-900);
+    color:var(--ink);
+    overflow:hidden;
+    word-break:keep-all;
+  }
+
+  /* ===== 슬라이드 무대 ===== */
+  #deck{position:fixed;inset:0;}
+  .slide{
+    position:absolute;inset:0;
+    display:none;
+    flex-direction:column;
+    justify-content:center;
+    padding:8vh 9vw;
+    background:var(--bg);
+    animation:fade .35s ease;
+  }
+  .slide.active{display:flex;}
+  @keyframes fade{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
+
+  /* 한 장에 핵심 메시지 하나 → 큰 제목 중심 레이아웃 */
+  .eyebrow{
+    font-size:clamp(14px,1.6vw,20px);
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--brown-400);
+    font-weight:700;
+    margin-bottom:2.2vh;
+  }
+  .headline{
+    font-size:clamp(30px,4.6vw,64px);
+    line-height:1.15;
+    font-weight:800;
+    color:var(--brown-900);
+    max-width:22ch;
+  }
+  .subline{
+    margin-top:3vh;
+    font-size:clamp(16px,1.9vw,26px);
+    line-height:1.5;
+    color:var(--ink-soft);
+    max-width:44ch;
+  }
+
+  /* ===== 표지 ===== */
+  .slide.cover{
+    background:linear-gradient(150deg,var(--brown-900),var(--brown-700));
+    color:var(--bg);
+  }
+  .cover .eyebrow{color:var(--brown-300);}
+  .cover .headline{color:#FFF8EF;max-width:24ch;}
+  .cover .subline{color:var(--brown-200);}
+  .cover .meta{margin-top:6vh;font-size:clamp(14px,1.5vw,20px);color:var(--brown-300);}
+
+  /* ===== 목차 ===== */
+  .toc-list{margin-top:3vh;display:flex;flex-direction:column;gap:1.4vh;max-width:38ch;}
+  .toc-list li{list-style:none;display:flex;align-items:baseline;gap:1.1rem;
+    font-size:clamp(18px,2.1vw,30px);color:var(--ink);}
+  .toc-list .num{font-weight:800;color:var(--accent);font-size:.85em;min-width:1.6em;}
+
+  /* ===== 마무리 ===== */
+  .slide.closing{
+    background:linear-gradient(150deg,var(--brown-700),var(--brown-900));
+    color:var(--bg);text-align:center;align-items:center;
+  }
+  .closing .headline{color:#FFF8EF;}
+  .closing .subline{color:var(--brown-200);text-align:center;}
+
+  /* ===== 기능 카드(2열) ===== */
+  .cards{margin-top:4vh;display:grid;grid-template-columns:1fr 1fr;
+    gap:2.2vh 2.6vw;max-width:66vw;}
+  .card{border-left:4px solid var(--brown-300);padding:.4vh 0 .4vh 1.2vw;}
+  .card .t{font-size:clamp(17px,1.9vw,25px);font-weight:800;color:var(--brown-900);}
+  .card .d{margin-top:.7vh;font-size:clamp(13px,1.4vw,18px);line-height:1.45;color:var(--ink-soft);}
+  .card.hot{border-left-color:var(--accent);}
+  .card.hot .t{color:var(--accent);}
+
+  /* ===== 서비스 소개(단계 흐름) ===== */
+  .steps{margin-top:3.5vh;display:flex;flex-direction:column;gap:1.7vh;max-width:64vw;}
+  .steps .step{display:flex;align-items:baseline;gap:1.2rem;}
+  .steps .sn{flex:0 0 auto;width:1.9em;height:1.9em;border-radius:50%;
+    background:var(--brown-200);color:var(--brown-900);font-weight:800;
+    display:flex;align-items:center;justify-content:center;font-size:clamp(14px,1.4vw,18px);
+    align-self:center;}
+  .steps .step:last-child .sn{background:var(--accent);color:#FFF8EF;}
+  .steps .st{font-size:clamp(16px,1.8vw,24px);font-weight:800;color:var(--brown-900);}
+  .steps .sd{margin-top:.2vh;font-size:clamp(13px,1.4vw,18px);color:var(--ink-soft);line-height:1.4;}
+  .steps .pages{margin-top:2.2vh;font-size:clamp(13px,1.4vw,18px);color:var(--brown-400);font-weight:700;}
+
+  /* ===== 서비스 요약(합산 식) ===== */
+  .stack{margin-top:4vh;display:flex;flex-direction:column;gap:1.5vh;max-width:60vw;}
+  .stack .row{display:flex;align-items:center;gap:1rem;font-size:clamp(16px,1.9vw,26px);color:var(--ink);}
+  .stack .plus{color:var(--accent);font-weight:800;min-width:1.2em;text-align:center;}
+  .stack .eq{margin-top:1.5vh;padding-top:1.8vh;border-top:2px solid var(--line);
+    font-size:clamp(18px,2.2vw,30px);font-weight:800;color:var(--brown-900);line-height:1.4;}
+
+  /* ===== Q&A ===== */
+  .qa{margin-top:3.5vh;display:flex;flex-direction:column;gap:1.9vh;max-width:64vw;}
+  .qa .q{font-size:clamp(15px,1.7vw,23px);font-weight:800;color:var(--brown-700);}
+  .qa .q::before{content:"Q. ";color:var(--brown-400);}
+  .qa .a{margin-top:.4vh;font-size:clamp(14px,1.5vw,20px);color:var(--ink-soft);line-height:1.45;}
+  .qa .a::before{content:"A. ";color:var(--accent);font-weight:800;}
+
+  /* ===== 차트 ===== */
+  .chart-block{margin-top:3vh;width:100%;max-width:58vw;}
+  .chart-caption{font-size:clamp(13px,1.4vw,18px);color:var(--ink-soft);margin-top:1.2vh;}
+  svg .bar{transition:opacity .2s;}
+  svg text{font-family:inherit;}
+
+  /* ===== 하단 내비게이션 UI ===== */
+  #hud{position:fixed;bottom:3vh;right:4vw;display:flex;align-items:center;gap:14px;
+    font-size:13px;color:var(--brown-300);z-index:10;}
+  .cover #hud,.closing #hud{color:var(--brown-300);}
+  #hud .dot{width:8px;height:8px;border-radius:50%;background:var(--brown-300);opacity:.4;}
+  #progress{position:fixed;top:0;left:0;height:5px;background:var(--accent);
+    width:0;transition:width .3s ease;z-index:11;}
+  #hint{position:fixed;bottom:3vh;left:4vw;font-size:12px;color:var(--brown-300);
+    opacity:.7;z-index:10;}
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+
+<div id="deck">
+
+  <!-- ===================== 1. 표지 ===================== -->
+  <section class="slide cover">
+    <div class="eyebrow">캐릭터 작명 · 인명용 한자</div>
+    <h1 class="headline">캐릭터 이름을 위한<br>한자 작명 도우미</h1>
+    <p class="subline">한글 이름에 어울리는 한자를, 제도 기준 그대로 골라주는 웹 도구</p>
+    <div class="meta">편오 · 2026.07.17</div>
+  </section>
+
+  <!-- ===================== 2. 목차 ===================== -->
+  <section class="slide">
+    <div class="eyebrow">Contents</div>
+    <h2 class="headline">목차</h2>
+    <ul class="toc-list">
+      <li><span class="num">01</span> 어떤 문제를 풀었나 (Pain Point)</li>
+      <li><span class="num">02</span> 어떤 서비스인가</li>
+      <li><span class="num">03</span> 한 줄 요약</li>
+      <li><span class="num">04</span> 정보성 도움 — 무엇이 다른가</li>
+      <li><span class="num">05</span> 사용자 편의</li>
+      <li><span class="num">06</span> 있을 법한 의문에 답하기</li>
+    </ul>
+  </section>
+
+  <!-- ===================== 3. Pain Point ===================== -->
+  <section class="slide">
+    <div class="eyebrow">01 · Pain Point</div>
+    <h2 class="headline">캐릭터의 한자 이름 짓기는<br>생각보다 번거롭습니다</h2>
+    <p class="subline">한글 소리는 정했는데, 그 소리에 쓸 수 있는 한자를 찾고 · 뜻을 고르고 · 실제 제도에서 통용되는지까지 확인하려면 여러 사이트를 오가야 합니다.</p>
+  </section>
+
+  <!-- ===================== 4. 서비스 소개 ===================== -->
+  <section class="slide">
+    <div class="eyebrow">02 · 어떤 서비스인가</div>
+    <h2 class="headline">한글 소리에서 한자 이름까지,<br>네 단계로 끝냅니다</h2>
+    <div class="steps">
+      <div class="step"><span class="sn">1</span>
+        <div><div class="st">한글 이름 입력</div>
+        <div class="sd">자모 검색으로 원하는 소리의 글자 후보를 찾습니다.</div></div></div>
+      <div class="step"><span class="sn">2</span>
+        <div><div class="st">글자별 인명용 한자·뜻 확인</div>
+        <div class="sd">쓸 수 있는 한자와 훈음을 보고, 성씨용은 붉게 구분해 고릅니다.</div></div></div>
+      <div class="step"><span class="sn">3</span>
+        <div><div class="st">마음에 든 후보를 메모에 저장</div>
+        <div class="sd">☆로 담아 캐릭터별로 신청일·메모까지 정리합니다.</div></div></div>
+      <div class="step"><span class="sn">4</span>
+        <div><div class="st">도우미가 뜻풀이 프롬프트 자동 생성</div>
+        <div class="sd">복사해서 ChatGPT·Gemini 등에 붙여 넣으면 됩니다.</div></div></div>
+      <div class="pages">서버·설치 없이 브라우저 한 페이지 — 소개 · 작명 · 도우미 · 개정연혁</div>
+    </div>
+  </section>
+
+  <!-- ===================== 5. 한 줄 요약 ===================== -->
+  <section class="slide">
+    <div class="eyebrow">03 · 한 줄 요약</div>
+    <h2 class="headline">흩어진 세 곳을<br>한 화면에 모았습니다</h2>
+    <div class="stack">
+      <div class="row"><span class="plus">＋</span> 네이버 한자사전 (같은 소리의 한자·뜻)</div>
+      <div class="row"><span class="plus">＋</span> 나무위키 인명용 한자표</div>
+      <div class="row"><span class="plus">＋</span> 대법원 인명용 한자 개정 정보</div>
+      <div class="row"><span class="plus">＋</span> 이름 메모장</div>
+      <div class="eq">＝ 이 넷을 한 번에 지원하는 가장 편한 사이트</div>
+    </div>
+  </section>
+
+  <!-- ===================== 5. 정보성① ===================== -->
+  <section class="slide">
+    <div class="eyebrow">04 · 정보성 도움</div>
+    <h2 class="headline">같은 한글 소리의 한자를<br>한눈에, 성씨는 따로</h2>
+    <div class="cards">
+      <div class="card">
+        <div class="t">같은 소리 한자 모아보기</div>
+        <div class="d">이름 글자별로 쓸 수 있는 인명용 한자와 훈음을 훈음 기준 정렬로 제공. 오름/내림 토글 지원.</div>
+      </div>
+      <div class="card hot">
+        <div class="t">성씨용 한자 구분</div>
+        <div class="d">성(姓)으로도 쓰이는 한자를 붉게 따로 표시하고, 실제 2015년 인구수까지 함께 보여줍니다.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 6. 정보성② 시행일·개정연혁 (차트) ===================== -->
+  <section class="slide">
+    <div class="eyebrow">04 · 정보성 도움</div>
+    <h2 class="headline">"그 시대엔 쓸 수 있었나"까지<br>고증할 수 있습니다</h2>
+    <div class="chart-block">
+      <div class="chart-container" data-chart='{
+        "type":"line","unit":"자",
+        "data":[
+          {"label":"1991","value":2856},
+          {"label":"2001","value":4879},
+          {"label":"2010","value":5454},
+          {"label":"2015","value":8142},
+          {"label":"2024","value":9389}
+        ]}'></div>
+      <div class="chart-caption">인명용 한자 누적 글자수 추이 — 신청일을 지정하면 당시 못 쓰던 한자를 구분 표시 (단위: 자)</div>
+    </div>
+  </section>
+
+  <!-- ===================== 7. 편의① 자모엔진·영타변환 ===================== -->
+  <section class="slide">
+    <div class="eyebrow">05 · 사용자 편의</div>
+    <h2 class="headline">입력하는 순간부터<br>거슬리지 않게</h2>
+    <div class="cards">
+      <div class="card hot">
+        <div class="t">한글 자모 엔진</div>
+        <div class="d">완성 글자를 초·중·종성으로 분해해 초성만·모음만·부분 일치까지 유연 검색.</div>
+      </div>
+      <div class="card hot">
+        <div class="t">영타 → 한글 자동변환</div>
+        <div class="d">한/영 전환을 깜빡해도 rk→ㄱㅏ처럼 즉시 교정. CapsLock까지 감지. (수요일 시연 후 추가)</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 8. 편의② 메모·클립보드 ===================== -->
+  <section class="slide">
+    <div class="eyebrow">05 · 사용자 편의</div>
+    <h2 class="headline">고른 이름을<br>바로 정리하고 옮기게</h2>
+    <div class="cards">
+      <div class="card">
+        <div class="t">이름 메모 패널</div>
+        <div class="d">여러 후보를 ☆로 담고 캐릭터별 신청일·메모 관리. 페이지를 옮겨도 사라지지 않습니다.</div>
+      </div>
+      <div class="card">
+        <div class="t">클립보드 복사</div>
+        <div class="d">후보·프롬프트를 전체/개별로 복사해 ChatGPT·문서 등 다른 곳으로 즉시 이동.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 9. Q&A ===================== -->
+  <section class="slide">
+    <div class="eyebrow">06 · 있을 법한 의문</div>
+    <h2 class="headline">이런 의문, 이렇게 답합니다</h2>
+    <div class="qa">
+      <div>
+        <div class="q">AI한테 이름 지어달라고 하면 되지 않나?</div>
+        <div class="a">AI가 뽑은 이름은 식상합니다. 창작자가 직접 소리와 뜻을 고르게 돕는 게 목적입니다.</div>
+      </div>
+      <div>
+        <div class="q">자모 분리, 굳이 필요한가?</div>
+        <div class="a">막상 직접 하면 머리가 안 돌아갑니다. 그 어려운 부분을 엔진이 대신합니다.</div>
+      </div>
+      <div>
+        <div class="q">이름의 한자까지 지어야 하나?</div>
+        <div class="a">캐릭터를 소비하는 팬은 바로 그 디테일을 원합니다.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 10. Q&A 이어서 ===================== -->
+  <section class="slide">
+    <div class="eyebrow">06 · 있을 법한 의문</div>
+    <h2 class="headline">시대별 한자표, 꼭 맞춰야 하나?</h2>
+    <p class="subline">아무도 모를 수 있으니 이건 작가 취향의 선택 영역입니다. 다만 굳이 고증하겠다면 — 시행일 기준 검증까지 되는 이 사이트가 여전히 가장 편합니다.</p>
+  </section>
+
+  <!-- ===================== 11. 마무리 ===================== -->
+  <section class="slide closing">
+    <div class="eyebrow">Thank you</div>
+    <h2 class="headline">소리는 창작자가,<br>한자 찾기는 이 도구가</h2>
+    <p class="subline">브라우저 하나로 바로 쓰는 캐릭터 한자 작명 도우미 · 감사합니다</p>
+  </section>
+
+</div>
+
+<div id="hint">← → 방향키로 이동 · F 전체화면</div>
+<div id="hud"><span class="dot"></span><span id="counter">1 / 1</span></div>
+
+<script>
+/* ============================================================
+   갈색 계열 차트 팔레트 (CSS 변수와 동일 계열)
+   ============================================================ */
+const BROWN = {
+  ink:'#3E2C23', soft:'#6B5647', line:'#DCC9B6',
+  bar:'#8B5E3C', barTop:'#A9744F', barSoft:'#C89B7B',
+  accent:'#A0522D', grid:'#EADFD1'
+};
+
+/* ---- 막대그래프 ---- */
+function barChartSVG(data, unit){
+  const W=1000, H=460, padL=60, padR=30, padT=40, padB=70;
+  const max = Math.max(...data.map(d=>d.value));
+  const nice = niceMax(max);
+  const plotW = W-padL-padR, plotH = H-padT-padB;
+  const n = data.length;
+  const gap = plotW/n*0.32, bw = plotW/n - gap;
+  let g='';
+  const ticks=4;
+  for(let i=0;i<=ticks;i++){
+    const v = nice/ticks*i;
+    const y = padT+plotH - (v/nice)*plotH;
+    g+=`<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="${BROWN.grid}" stroke-width="1"/>`;
+    g+=`<text x="${padL-12}" y="${y+5}" text-anchor="end" font-size="20" fill="${BROWN.soft}">${fmt(v)}</text>`;
+  }
+  data.forEach((d,i)=>{
+    const x = padL + (plotW/n)*i + gap/2;
+    const h = (d.value/nice)*plotH;
+    const y = padT+plotH - h;
+    g+=`<rect class="bar" x="${x}" y="${y}" width="${bw}" height="${h}" rx="6" fill="${i===n-1?BROWN.accent:BROWN.bar}"/>`;
+    g+=`<text x="${x+bw/2}" y="${y-12}" text-anchor="middle" font-size="24" font-weight="700" fill="${BROWN.ink}">${fmt(d.value)}</text>`;
+    g+=`<text x="${x+bw/2}" y="${padT+plotH+34}" text-anchor="middle" font-size="22" fill="${BROWN.soft}">${d.label}</text>`;
+  });
+  g+=`<line x1="${padL}" y1="${padT+plotH}" x2="${W-padR}" y2="${padT+plotH}" stroke="${BROWN.line}" stroke-width="2"/>`;
+  if(unit) g+=`<text x="${W-padR}" y="26" text-anchor="end" font-size="19" fill="${BROWN.soft}">단위: ${unit}</text>`;
+  return svgWrap(W,H,g);
+}
+
+/* ---- 꺾은선그래프 ---- */
+function lineChartSVG(data, unit){
+  const W=1000, H=460, padL=60, padR=40, padT=40, padB=70;
+  const max=Math.max(...data.map(d=>d.value));
+  const nice=niceMax(max);
+  const plotW=W-padL-padR, plotH=H-padT-padB, n=data.length;
+  const X=i=> padL + (plotW/(n-1))*i;
+  const Y=v=> padT+plotH - (v/nice)*plotH;
+  let g='';
+  const ticks=4;
+  for(let i=0;i<=ticks;i++){
+    const v=nice/ticks*i, y=Y(v);
+    g+=`<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="${BROWN.grid}" stroke-width="1"/>`;
+    g+=`<text x="${padL-12}" y="${y+5}" text-anchor="end" font-size="20" fill="${BROWN.soft}">${fmt(v)}</text>`;
+  }
+  let area=`M ${X(0)} ${padT+plotH} `;
+  data.forEach((d,i)=> area+=`L ${X(i)} ${Y(d.value)} `);
+  area+=`L ${X(n-1)} ${padT+plotH} Z`;
+  g+=`<path d="${area}" fill="${BROWN.barSoft}" opacity="0.28"/>`;
+  let path='';
+  data.forEach((d,i)=> path+=(i?'L':'M')+` ${X(i)} ${Y(d.value)} `);
+  g+=`<path d="${path}" fill="none" stroke="${BROWN.accent}" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>`;
+  data.forEach((d,i)=>{
+    g+=`<circle cx="${X(i)}" cy="${Y(d.value)}" r="7" fill="${BROWN.bar}" stroke="#FBF7F0" stroke-width="3"/>`;
+    g+=`<text x="${X(i)}" y="${Y(d.value)-18}" text-anchor="middle" font-size="23" font-weight="700" fill="${BROWN.ink}">${fmt(d.value)}</text>`;
+    g+=`<text x="${X(i)}" y="${padT+plotH+34}" text-anchor="middle" font-size="22" fill="${BROWN.soft}">${d.label}</text>`;
+  });
+  g+=`<line x1="${padL}" y1="${padT+plotH}" x2="${W-padR}" y2="${padT+plotH}" stroke="${BROWN.line}" stroke-width="2"/>`;
+  if(unit) g+=`<text x="${W-padR}" y="26" text-anchor="end" font-size="19" fill="${BROWN.soft}">단위: ${unit}</text>`;
+  return svgWrap(W,H,g);
+}
+
+function svgWrap(w,h,inner){
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" preserveAspectRatio="xMidYMid meet" role="img">${inner}</svg>`;
+}
+function niceMax(v){
+  if(v<=0) return 1;
+  const pow=Math.pow(10,Math.floor(Math.log10(v)));
+  const n=v/pow;
+  const step = n<=1?1:n<=2?2:n<=5?5:10;
+  return step*pow;
+}
+function fmt(v){
+  const r=Math.round(v*10)/10;
+  return (r%1===0?r:r.toFixed(1)).toString().replace(/\B(?=(\d{3})+(?!\d))/g,',');
+}
+
+/* ============================================================
+   차트 자동 렌더링
+   ============================================================ */
+document.querySelectorAll('.chart-container').forEach(el=>{
+  try{
+    const cfg=JSON.parse(el.getAttribute('data-chart'));
+    el.innerHTML = cfg.type==='line'
+      ? lineChartSVG(cfg.data,cfg.unit)
+      : barChartSVG(cfg.data,cfg.unit);
+  }catch(e){ el.innerHTML='<p style="color:#A0522D">차트 데이터 형식 오류</p>'; }
+});
+
+/* ============================================================
+   슬라이드 내비게이션
+   ============================================================ */
+const slides=[...document.querySelectorAll('.slide')];
+let idx=0;
+const counter=document.getElementById('counter');
+const progress=document.getElementById('progress');
+
+function show(i){
+  idx=Math.max(0,Math.min(slides.length-1,i));
+  slides.forEach((s,k)=>s.classList.toggle('active',k===idx));
+  counter.textContent=`${idx+1} / ${slides.length}`;
+  progress.style.width=`${(idx+1)/slides.length*100}%`;
+  document.body.className = slides[idx].classList.contains('cover')?'cover'
+    : slides[idx].classList.contains('closing')?'closing':'';
+}
+function next(){ show(idx+1); }
+function prev(){ show(idx-1); }
+
+document.addEventListener('keydown',e=>{
+  if(['ArrowRight','ArrowDown',' ','PageDown'].includes(e.key)){ e.preventDefault(); next(); }
+  else if(['ArrowLeft','ArrowUp','PageUp'].includes(e.key)){ e.preventDefault(); prev(); }
+  else if(e.key==='Home'){ show(0); }
+  else if(e.key==='End'){ show(slides.length-1); }
+  else if(e.key.toLowerCase()==='f'){
+    if(!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+    else document.exitFullscreen?.();
+  }
+});
+document.getElementById('deck').addEventListener('click',e=>{
+  (e.clientX > window.innerWidth/2) ? next() : prev();
+});
+
+show(0);
+</script>
+</body>
+</html>

@@ -184,6 +184,11 @@
   .memofoot{padding:8px 12px 12px;border-top:1px solid var(--line)}
   .addrow{width:100%;padding:10px;border:1px dashed var(--accent);border-radius:10px;
           background:var(--accent-soft);color:var(--accent);font-weight:600;cursor:pointer;font-size:13px}
+  .clearall{width:100%;margin-top:8px;padding:9px;border:1px solid var(--line);border-radius:10px;
+            background:#fff;color:var(--sub);font-weight:600;cursor:pointer;font-size:12.5px;
+            display:inline-flex;align-items:center;justify-content:center;gap:6px}
+  .clearall:hover{border-color:#d64545;color:#d64545;background:#fff5f5}
+  .clearall .ico{width:15px;height:15px}
   .iconbtn:disabled{opacity:.4;cursor:default;border-color:var(--line);color:var(--sub)}
   .memodates{margin:2px 12px 6px;border:1px solid var(--line);border-radius:10px;background:#faf6ee;overflow:hidden}
   .dates-head{width:100%;display:flex;align-items:center;gap:7px;padding:8px 10px;border:none;
@@ -468,6 +473,7 @@
   <div class="memorows" id="memoRows"></div>
   <div class="memofoot">
     <button class="addrow" id="memoAddRow">＋ 이름 후보 추가</button>
+    <button class="clearall" id="memoClearAll" title="이름 메모와 신청일 기록을 모두 삭제"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>전체 초기화</button>
   </div>
 </aside>
 <button class="memofab" id="memoFab" title="이름 메모 열기"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span class="dot" id="memoFabDot"></span></button>
@@ -821,6 +827,7 @@ function setActiveRow(div){
   document.querySelectorAll('.rowpick').forEach(p=>p.textContent='○');
   if(div){div.classList.add('active');div.querySelector('.rowpick').textContent='●';}
   markFavStars();
+  saveMemo();
 }
 // 검색 결과의 별 상태를 현재 활성 행 내용과 동기화
 function markFavStars(){
@@ -846,7 +853,7 @@ function toggleSylFav(b){
   if(i>=0){lines.splice(i,1);toast('메모에서 뺐어요');}
   else{lines.push(entry);toast('“'+entry+'” 담음 (한자 미정)');openPanelIfMobile();}
   ta.value=lines.join('\n');
-  markFavStars();
+  markFavStars();saveMemo();
 }
 const DATE_PREFIX='📅 신청일';
 function updateFabDot(){
@@ -855,21 +862,56 @@ function updateFabDot(){
   if(n){dot.textContent=n;dot.style.display='block';}else dot.style.display='none';
 }
 
+/* ===================== 메모 영구 저장 (localStorage) ===================== */
+const MEMO_KEY='hanjaMemo_v1';
+let memoReady=false;   // 초기 로드 완료 전에는 저장하지 않음
+function saveMemo(){
+  if(!memoReady) return;
+  try{
+    const rows=[...document.querySelectorAll('.memorow')].map(r=>({
+      name:r.querySelector('.rowname').value,
+      body:r.querySelector('.rowmemo').value,
+      active:r.classList.contains('active')
+    }));
+    const data={rows,dates:dateRecords,datesCollapsed:memoDates.classList.contains('collapsed')};
+    localStorage.setItem(MEMO_KEY,JSON.stringify(data));
+  }catch(e){/* 저장 실패는 조용히 무시 (프라이빗 모드 등) */}
+}
+function loadMemo(){
+  let data=null;
+  try{data=JSON.parse(localStorage.getItem(MEMO_KEY)||'null');}catch(e){data=null;}
+  if(data&&Array.isArray(data.rows)&&data.rows.length){
+    memoRows.innerHTML='';
+    let activeDiv=null;
+    data.rows.forEach(r=>{const d=makeRow(r.name,r.body);if(r.active)activeDiv=d;});
+    setActiveRow(activeDiv||document.querySelector('.memorow'));
+    dateRecords=Array.isArray(data.dates)?data.dates:[];
+    renderDates();
+    if(data.datesCollapsed)memoDates.classList.add('collapsed');
+    return true;
+  }
+  return false;
+}
+
 // 이름 후보 행 생성
-function makeRow(name){
+function makeRow(name,body){
   rowSeq++;
   const div=document.createElement('div');div.className='memorow';div.dataset.id='r'+rowSeq;
   div.innerHTML=`
     <div class="memorow-top">
       <button class="rowpick" title="이 후보에 담기">○</button>
-      <input class="rowname" value="${name||('후보 '+rowSeq)}" maxlength="24">
+      <input class="rowname" maxlength="24">
       <button class="rowcopy" title="이 후보 복사">⧉</button>
       <button class="rowdel" title="삭제">×</button>
     </div>
     <textarea class="rowmemo" placeholder="즐겨찾기한 한자가 여기 담겨요. 직접 편집할 수도 있어요."></textarea>`;
   memoRows.appendChild(div);
+  div.querySelector('.rowname').value=name||('후보 '+rowSeq);   // 속성 주입 대신 값으로 설정
+  if(body) div.querySelector('.rowmemo').value=body;
   div.querySelector('.rowpick').onclick=()=>setActiveRow(div);
   div.querySelector('.rowmemo').addEventListener('input',markFavStars);
+  div.querySelector('.rowmemo').addEventListener('input',saveMemo);
+  div.querySelector('.rowname').addEventListener('input',saveMemo);
   div.querySelector('.rowmemo').addEventListener('focus',()=>setActiveRow(div));
   div.querySelector('.rowname').addEventListener('focus',()=>setActiveRow(div));
   div.querySelector('.rowcopy').onclick=()=>copyText(div.querySelector('.rowmemo').value,'후보를 복사했어요');
@@ -878,11 +920,23 @@ function makeRow(name){
     div.remove();
     if(wasActive) setActiveRow(document.querySelector('.memorow'));
     else markFavStars();
+    saveMemo();
   };
   setActiveRow(div);
   return div;
 }
-document.getElementById('memoAddRow').onclick=()=>{makeRow();document.querySelector('.memorow.active .rowname').focus();};
+document.getElementById('memoAddRow').onclick=()=>{makeRow();document.querySelector('.memorow.active .rowname').focus();saveMemo();};
+
+// 전체 초기화: 이름 메모 + 신청일 기록 모두 삭제
+document.getElementById('memoClearAll').onclick=()=>{
+  if(!confirm('이름 메모와 신청일 기록을 모두 삭제할까요? 되돌릴 수 없습니다.'))return;
+  dateRecords=[];
+  renderDates();
+  memoRows.innerHTML='';
+  rowSeq=0;
+  makeRow('후보 1');   // setActiveRow가 saveMemo까지 처리
+  toast('메모를 모두 초기화했어요');
+};
 
 // 신청일 기록: 한 패널에 여러 캐릭터의 후보가 섞일 수 있으므로, 신청일도 여러 개를
 // 각각 라벨(예: 빨간머리남캐)과 함께 기록한다. 후보를 가리지 않도록 접을 수 있는 섹션.
@@ -901,8 +955,8 @@ function renderDates(){
       `<input class="dr-label" maxlength="30" placeholder="메모 (예: 빨간머리남캐)">`+
       `<button class="dr-del" title="삭제">×</button>`;
     const inp=row.querySelector('.dr-label');inp.value=rec.label||'';
-    inp.addEventListener('input',()=>{dateRecords[i].label=inp.value;});
-    row.querySelector('.dr-del').onclick=()=>{dateRecords.splice(i,1);renderDates();toast('신청일 기록을 지웠어요');};
+    inp.addEventListener('input',()=>{dateRecords[i].label=inp.value;saveMemo();});
+    row.querySelector('.dr-del').onclick=()=>{dateRecords.splice(i,1);renderDates();saveMemo();toast('신청일 기록을 지웠어요');};
     datesList.appendChild(row);
   });
 }
@@ -914,10 +968,11 @@ document.getElementById('memoAddDate').onclick=()=>{
   renderDates();
   const last=datesList.querySelector('.daterow:last-child .dr-label');
   if(last)last.focus();
+  saveMemo();
   toast('신청일을 기록했어요');
   openPanelIfMobile();
 };
-document.getElementById('datesToggle').onclick=()=>memoDates.classList.toggle('collapsed');
+document.getElementById('datesToggle').onclick=()=>{memoDates.classList.toggle('collapsed');saveMemo();};
 // 신청일 미지정이면 📅 버튼 흐리게
 function syncDateBtn(){document.getElementById('memoAddDate').disabled=!getBirth();}
 document.getElementById('birthDate').addEventListener('change',syncDateBtn);
@@ -935,7 +990,7 @@ document.getElementById('hanjaResult').addEventListener('click',e=>{
   if(i>=0){lines.splice(i,1);toast('메모에서 뺐어요');}
   else{lines.push(entry);toast('“'+entry+'” 담음');openPanelIfMobile();}
   ta.value=lines.join('\n');
-  markFavStars();
+  markFavStars();saveMemo();
 });
 
 // 복사 (클립보드)
@@ -1040,8 +1095,10 @@ document.getElementById('birthDate').addEventListener('change',()=>{
   if(!hb.value && getBirth()) hb.value=getBirth();
 });
 
-// 최초 행 1개
-makeRow('후보 1');
+// 저장된 메모 복원, 없으면 최초 행 1개
+if(!loadMemo()) makeRow('후보 1');
+memoReady=true;   // 이후 변경부터 자동 저장
+saveMemo();
 
 /* ===================== 개정연혁 렌더 (스프레드시트) ===================== */
 function renderHistory(){
