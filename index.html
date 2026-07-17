@@ -613,6 +613,11 @@ document.querySelectorAll('.subtab').forEach(t=>t.onclick=()=>{
   document.getElementById('sub-adv').style.display = t.dataset.sub==='adv'?'':'none';
 });
 
+/* ===================== 공용 HTML 이스케이프 =====================
+   innerHTML 로 넣기 전에 &<>"' 를 안전한 엔티티로 바꿔 XSS 를 막는다.
+   태그 본문·속성값 어디에 들어가도 안전하도록 따옴표까지 처리한다. */
+const escHtml=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
 /* ===================== 글자 칩 렌더 ===================== */
 function sylChipHTML(syl){
   const all=HANJA_DB[syl]||[];
@@ -620,7 +625,8 @@ function sylChipHTML(syl){
   const after=all.length-usable;
   const zero=all.length===0?' zero':'';
   const plus=(getBirth()&&after)?`<span class="plus">+${after}</span>`:'';
-  return `<span class="sylchip${zero}" data-syl="${syl}"><button class="favsyl" data-syl="${syl}" title="이 한글 글자를 후보에 담기 (한자 미정)">☆</button>${syl}<span class="cnt">인명용 ${usable}자</span>${plus}</span>`;
+  const s=escHtml(syl);
+  return `<span class="sylchip${zero}" data-syl="${s}"><button class="favsyl" data-syl="${s}" title="이 한글 글자를 후보에 담기 (한자 미정)">☆</button>${s}<span class="cnt">인명용 ${usable}자</span>${plus}</span>`;
 }
 function bindChips(container){
   container.querySelectorAll('.sylchip:not(.zero)').forEach(ch=>{
@@ -652,7 +658,7 @@ function runSimple(){
     const list=searchSyllables(cons);
     const chips=list.length?list.map(sylChipHTML).join(''):'<div class="empty">등록된 글자 없음</div>';
     const card=document.createElement('div');card.className='card';
-    card.innerHTML=`<div class="grouphead">'${label}' 검색 결과 · ${list.length}글자</div><div>${chips}</div>`;
+    card.innerHTML=`<div class="grouphead">'${escHtml(label)}' 검색 결과 · ${list.length}글자</div><div>${chips}</div>`;
     box.appendChild(card);
     bindChips(card);
   }
@@ -708,7 +714,7 @@ function runAdv(){
     const chips=list.length?list.map(sylChipHTML).join(''):'<div class="empty">등록된 글자 없음</div>';
     const card=document.createElement('div');card.className='card';
     const role=i===0?'성':(inputs.length>2?'이름'+i:'이름');
-    card.innerHTML=`<div class="grouphead">${role} '${val}' 검색 결과 · ${list.length}글자</div><div>${chips}</div>`;
+    card.innerHTML=`<div class="grouphead">${escHtml(role)} '${escHtml(val)}' 검색 결과 · ${list.length}글자</div><div>${chips}</div>`;
     box.appendChild(card);bindChips(card);
   });
   if(!any) box.innerHTML='<div class="card empty">자모를 입력하세요.</div>';
@@ -719,9 +725,10 @@ document.getElementById('advBtn').onclick=runAdv;
 /* ===================== 한자 찾기 ===================== */
 function hjChip(x,syl){
   const after=isAfterBirth(x);
-  const dateLine=showDates()?`<div class="date">${x.d?x.d.replace(/-/g,'.')+' 추가':'기존 인명용'}</div>`:'';
-  const fav=`<button class="favbtn" data-syl="${syl}" data-h="${x.h}" data-m="${x.m}" title="이름 메모에 담기">☆</button>`;
-  return `<div class="hj${x.s?' sur':''}${after?' after':''}">${fav}<div class="char">${x.h}</div><div class="mean">${x.m}</div>${x.s?'<div class="badge">姓</div>':''}${dateLine}</div>`;
+  const h=escHtml(x.h), m=escHtml(x.m), s=escHtml(syl);
+  const dateLine=showDates()?`<div class="date">${x.d?escHtml(x.d.replace(/-/g,'.'))+' 추가':'기존 인명용'}</div>`:'';
+  const fav=`<button class="favbtn" data-syl="${s}" data-h="${h}" data-m="${m}" title="이름 메모에 담기">☆</button>`;
+  return `<div class="hj${x.s?' sur':''}${after?' after':''}">${fav}<div class="char">${h}</div><div class="mean">${m}</div>${x.s?'<div class="badge">姓</div>':''}${dateLine}</div>`;
 }
 let hanjaSortDir='asc';   // 한글 뜻 기준 정렬 방향: 'asc' 오름차순 / 'desc' 내림차순
 function sortByMean(arr){
@@ -734,7 +741,7 @@ function hanjaCardHTML(syl,{surnameOnly=false}={}){
   const birth=getBirth();
   const usable=sortByMean(list.filter(x=>!isAfterBirth(x)));
   const after=sortByMean(list.filter(x=>isAfterBirth(x)));
-  const head=`<div class="sylhead">${syl}<small>${surnameOnly?'성씨 한자':'인명용 한자'} ${usable.length}자${(birth&&after.length)?` · 이후 추가 ${after.length}자`:''}</small></div>`;
+  const head=`<div class="sylhead">${escHtml(syl)}<small>${surnameOnly?'성씨 한자':'인명용 한자'} ${usable.length}자${(birth&&after.length)?` · 이후 추가 ${after.length}자`:''}</small></div>`;
   if(!list.length) return head+`<div class="empty">${surnameOnly?'성씨로 쓰이는 한자가 없습니다.':'등록된 한자가 없습니다.'}</div>`;
   let html=head;
   if(usable.length) html+=`<div>${usable.map(x=>hjChip(x,syl)).join('')}</div>`;
@@ -1110,7 +1117,8 @@ async function loadData(){
     HANJA_DB={};SYLLABLES=[];
     hideLoadOverlay();               // 오류 안내는 본 화면 배너로 표시
     status.className='datastatus err';
-    status.innerHTML='⚠ 데이터를 불러오지 못했습니다: <b>'+String(err.message||err)+'</b><br>'
+    // 가변 에러 메시지(외부 응답의 data.error 포함 가능)는 이스케이프해 삽입한다.
+    status.innerHTML='⚠ 데이터를 불러오지 못했습니다: <b>'+escHtml(String(err.message||err))+'</b><br>'
       +'· 코드의 <code>SHEET_API_URL</code> 이 배포한 웹앱 주소인지 확인하세요.<br>'
       +'· 웹앱 배포 시 액세스 권한을 <b>“모든 사용자”</b> 로 설정했는지 확인하세요.<br>'
       +'· 스프레드시트에 <b>한자 목록 탭</b>(헤더: 한글·한자)이 있는지 확인하세요.';
