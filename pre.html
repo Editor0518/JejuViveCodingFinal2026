@@ -190,12 +190,16 @@
   #hint{position:fixed;bottom:3vh;left:4vw;font-size:12px;color:var(--brown-300);
     opacity:.7;z-index:10;}
 
-  /* ===== 좌측 상단 사이트 링크(모든 슬라이드) ===== */
-  #sitelink{position:fixed;top:2.2vh;left:4vw;z-index:12;
-    font-size:13px;letter-spacing:.01em;color:var(--brown-500);
-    text-decoration:none;opacity:.9;border-bottom:1px solid transparent;}
-  #sitelink:hover{opacity:1;border-bottom-color:currentColor;}
-  .cover #sitelink,.closing #sitelink{color:var(--brown-200);}
+  /* ===== 좌측 상단 링크(모든 슬라이드) ===== */
+  #toplinks{position:fixed;top:2.2vh;left:4vw;z-index:12;
+    display:flex;flex-direction:column;gap:.5vh;
+    font-size:13px;letter-spacing:.01em;color:var(--brown-500);}
+  #toplinks a{color:inherit;text-decoration:none;opacity:.9;
+    border-bottom:1px solid transparent;}
+  #toplinks a:hover{opacity:1;border-bottom-color:currentColor;}
+  #toplinks .lbl{color:var(--brown-400);font-weight:700;margin-right:.35em;}
+  .cover #toplinks,.closing #toplinks{color:var(--brown-200);}
+  .cover #toplinks .lbl,.closing #toplinks .lbl{color:var(--brown-300);}
 </style>
 </head>
 <body>
@@ -461,7 +465,10 @@
 
 </div>
 
-<a id="sitelink" href="https://editor0518.github.io/JejuViveCodingFinal2026/" target="_blank" rel="noopener">editor0518.github.io/JejuViveCodingFinal2026/</a>
+<div id="toplinks">
+  <span><span class="lbl">사이트:</span><a href="https://editor0518.github.io/JejuViveCodingFinal2026/" target="_blank" rel="noopener">editor0518.github.io/JejuViveCodingFinal2026/</a></span>
+  <span><span class="lbl">깃허브:</span><a href="https://github.com/Editor0518" target="_blank" rel="noopener">github.com/Editor0518</a></span>
+</div>
 <div id="hint">← → 방향키로 이동 · F 전체화면</div>
 <div id="hud"><span class="dot"></span><span id="counter">1 / 1</span></div>
 
