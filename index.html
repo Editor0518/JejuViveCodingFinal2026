@@ -505,10 +505,15 @@ function decompose(syl){
 const vAtoms=v=>VOWEL_ATOMS[v]||[v];
 const jAtoms=j=>!j?[]:(JONG_ATOMS[j]||[j]);
 
-// 후보 글자의 원자 집합
+// 후보 글자의 원자 집합 (음절→원자 매핑은 불변이라 캐시해 매 검색마다 Set 재생성을 막는다)
+const _sylAtomCache=new Map();
 function sylAtoms(syl){
+  let c=_sylAtomCache.get(syl);
+  if(c) return c;
   const d=decompose(syl);
-  return {cho:new Set([d.cho]), jung:new Set(vAtoms(d.jung)), jong:new Set(jAtoms(d.jong))};
+  c={cho:new Set([d.cho]), jung:new Set(vAtoms(d.jung)), jong:new Set(jAtoms(d.jong))};
+  _sylAtomCache.set(syl,c);
+  return c;
 }
 const isSuper=(cand,cons)=>{for(const x of cons) if(!cand.has(x)) return false; return true;};
 function matchConstraint(syl,cons){
@@ -589,9 +594,18 @@ const showDates=()=>document.getElementById('chkShowDate').checked;
 const isAfterBirth=x=>{const b=getBirth();return !!(b && x.d && x.d>b);};
 
 /* ===================== 공통 검색 ===================== */
-// 제약에 맞는 등록 글자 목록
+// 제약에 맞는 등록 글자 목록 (같은 제약의 재검색은 캐시로 재사용; 데이터 로드 시 clearSearchCache로 비움)
+// 반환 배열은 공유 참조이므로 호출부에서 변형(mutate)하지 말 것 — 현재 모두 map/length 읽기만 사용.
+let _searchCache=new Map();
+const _consKey=c=>[...c.cho].sort().join('')+'|'+[...c.jung].sort().join('')+'|'+[...c.jong].sort().join('');
+function clearSearchCache(){ _searchCache=new Map(); }
 function searchSyllables(cons){
-  return SYLLABLES.filter(s=>matchConstraint(s,cons)).sort();
+  const key=_consKey(cons);
+  let hit=_searchCache.get(key);
+  if(hit) return hit;
+  hit=SYLLABLES.filter(s=>matchConstraint(s,cons)).sort();
+  _searchCache.set(key,hit);
+  return hit;
 }
 
 /* ===================== 페이지(헤더 네비) 전환 =====================
@@ -623,6 +637,18 @@ document.querySelectorAll('.subtab').forEach(t=>t.onclick=()=>{
    innerHTML 로 넣기 전에 &<>"' 를 안전한 엔티티로 바꿔 XSS 를 막는다.
    태그 본문·속성값 어디에 들어가도 안전하도록 따옴표까지 처리한다. */
 const escHtml=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ===================== 디바운스 유틸 =====================
+   입력 중에는 검색을 지연 실행해, 매 키 입력마다 전체 검색+DOM 재생성이 도는 것을 막는다.
+   버튼 클릭 등 즉시 실행이 필요한 곳은 원본 함수를 그대로 쓴다. */
+function debounce(fn,wait){
+  let t;
+  return function(...args){
+    clearTimeout(t);
+    t=setTimeout(()=>fn.apply(this,args),wait);
+  };
+}
+const SEARCH_DEBOUNCE=180;   // ms
 
 /* ===================== 글자 칩 렌더 ===================== */
 function sylChipHTML(syl){
@@ -671,7 +697,7 @@ function runSimple(){
   markFavStars();
 }
 document.getElementById('simpleBtn').onclick=runSimple;
-document.getElementById('simpleInput').addEventListener('input',runSimple);
+document.getElementById('simpleInput').addEventListener('input',debounce(runSimple,SEARCH_DEBOUNCE));
 
 /* ===================== 심화 검색 ===================== */
 const advFields=document.getElementById('advFields');
@@ -684,7 +710,7 @@ function addAdvField(labelText){
   advFields.appendChild(div);
   const inp=div.querySelector('input');
   inp.addEventListener('focus',()=>focusedInput=inp);
-  inp.addEventListener('input',runAdv);
+  inp.addEventListener('input',debounce(runAdv,SEARCH_DEBOUNCE));
   div.querySelector('.del').onclick=()=>{div.remove();runAdv();};
   focusedInput=inp;
 }
@@ -793,7 +819,7 @@ hanjaSortBtn.onclick=()=>{
   if(document.getElementById('hanjaInput').value.trim()) runHanja();
 };
 document.getElementById('hanjaBtn').onclick=runHanja;
-document.getElementById('hanjaInput').addEventListener('input',runHanja);
+document.getElementById('hanjaInput').addEventListener('input',debounce(runHanja,SEARCH_DEBOUNCE));
 document.getElementById('chkSurname').addEventListener('change',()=>{if(document.getElementById('hanjaInput').value.trim())runHanja();});
 document.getElementById('chkExact').addEventListener('change',()=>{if(document.getElementById('hanjaInput').value.trim())runHanja();});
 document.getElementById('surCount').addEventListener('change',()=>{if(document.getElementById('chkSurname').checked&&document.getElementById('hanjaInput').value.trim())runHanja();});
@@ -830,14 +856,17 @@ function setActiveRow(div){
   saveMemo();
 }
 // 검색 결과의 별 상태를 현재 활성 행 내용과 동기화
+// 별(★/☆)은 검색 결과 컨테이너에만 존재하므로 문서 전체가 아닌 해당 영역만 훑는다.
+const _favBtnSel='#hanjaResult .favbtn,#simpleResult .favbtn,#advResult .favbtn';
+const _favSylSel='#hanjaResult .favsyl,#simpleResult .favsyl,#advResult .favsyl';
 function markFavStars(){
   const ta=activeRowTextarea();
   const lines=ta?new Set(memoLines(ta)):new Set();
-  document.querySelectorAll('.favbtn').forEach(b=>{
+  document.querySelectorAll(_favBtnSel).forEach(b=>{
     const on=lines.has(entryStr(b.dataset.syl,b.dataset.h,b.dataset.m));
     b.textContent=on?'★':'☆';b.classList.toggle('on',on);
   });
-  document.querySelectorAll('.favsyl').forEach(b=>{
+  document.querySelectorAll(_favSylSel).forEach(b=>{
     const on=lines.has(b.dataset.syl);
     b.textContent=on?'★':'☆';b.classList.toggle('on',on);
   });
@@ -1154,6 +1183,7 @@ async function loadData(){
     HANJA_DB=data.hanja||{};
     const brokenRemoved=sanitizeHanjaDB();   // 미배정/PUA 코드 한자 걸러내기
     SYLLABLES=Object.keys(HANJA_DB);
+    clearSearchCache();                      // 음절 목록이 바뀌었으니 검색 캐시 무효화
     HISTORY=data.history||[];
     renderHistory();
     refreshAll();
