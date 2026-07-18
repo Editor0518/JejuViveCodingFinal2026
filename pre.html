@@ -176,8 +176,9 @@
   .shot.wide img{max-height:44vh;}
   .shot figcaption{font-size:clamp(12px,1.2vw,16px);color:var(--ink-soft);
     padding:1vh 1.4vw;text-align:center;background:#fff;}
-  .col-media.duo{flex-direction:row;gap:1.6vw;align-items:stretch;}
-  .col-media.duo .shot img{max-height:60vh;}
+  .slide.split .col-media.duo{flex-direction:row;gap:1.4vw;align-items:center;justify-content:center;}
+  .slide.split .col-media.duo .shot{flex:1 1 0;min-width:0;}
+  .slide.split .col-media.duo .shot img{max-height:64vh;max-width:100%;}
 
   /* ===== 하단 내비게이션 UI ===== */
   #hud{position:fixed;bottom:3vh;right:4vw;display:flex;align-items:center;gap:14px;
@@ -188,6 +189,13 @@
     width:0;transition:width .3s ease;z-index:11;}
   #hint{position:fixed;bottom:3vh;left:4vw;font-size:12px;color:var(--brown-300);
     opacity:.7;z-index:10;}
+
+  /* ===== 좌측 상단 사이트 링크(모든 슬라이드) ===== */
+  #sitelink{position:fixed;top:2.2vh;left:4vw;z-index:12;
+    font-size:13px;letter-spacing:.01em;color:var(--brown-500);
+    text-decoration:none;opacity:.9;border-bottom:1px solid transparent;}
+  #sitelink:hover{opacity:1;border-bottom-color:currentColor;}
+  .cover #sitelink,.closing #sitelink{color:var(--brown-200);}
 </style>
 </head>
 <body>
@@ -281,11 +289,16 @@
       <div class="pages">서버·설치 없이 브라우저 한 페이지 — 소개 · 작명 · 도우미 · 개정연혁</div>
     </div>
     </div>
-    <div class="col-media">
+    <div class="col-media duo">
       <figure class="shot">
         <div class="bar"><i></i><i></i><i></i></div>
         <img src="img/1.한글이름찾기-심화2.png" alt="자모 검색으로 성·이름 글자 후보를 찾은 결과 화면">
-        <figcaption>자모 검색 → 성·이름 글자 후보 한눈에</figcaption>
+        <figcaption>① 자모 검색 → 글자 후보</figcaption>
+      </figure>
+      <figure class="shot">
+        <div class="bar"><i></i><i></i><i></i></div>
+        <img src="img/2.한자찾기.png" alt="'은' 한자 찾기 결과 — 성씨용 한자를 붉게 구분 표시">
+        <figcaption>② 한자·뜻 확인 · 성씨용 붉게</figcaption>
       </figure>
     </div>
   </section>
@@ -375,7 +388,7 @@
       </div>
       <div class="card hot">
         <div class="t">영타 → 한글 자동변환</div>
-        <div class="d">한/영 전환을 깜빡해도 rk→ㄱㅏ처럼 즉시 교정. CapsLock까지 감지. (수요일 시연 후 추가)</div>
+        <div class="d">한/영 전환을 깜빡해도 'rk→가'처럼 즉시 교정. CapsLock까지 감지. (수요일 시연 후 추가)</div>
       </div>
     </div>
     </div>
@@ -447,6 +460,7 @@
 
 </div>
 
+<a id="sitelink" href="https://editor0518.github.io/JejuViveCodingFinal2026/" target="_blank" rel="noopener">editor0518.github.io/JejuViveCodingFinal2026/</a>
 <div id="hint">← → 방향키로 이동 · F 전체화면</div>
 <div id="hud"><span class="dot"></span><span id="counter">1 / 1</span></div>
 
