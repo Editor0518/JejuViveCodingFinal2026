@@ -36,6 +36,10 @@
   .about-card p{margin:0 0 10px;font-size:14px;color:var(--ink)}
   .about-card ul{margin:6px 0 10px;padding-left:20px}
   .about-card li{font-size:14px;margin-bottom:5px}
+  .about-note{background:#faf6ee}
+  .about-note p{font-size:13px;color:var(--sub)}
+  .about-note p:last-child{margin-bottom:0}
+  .about-note .updated{font-size:12px;font-weight:600;color:var(--sub);margin-bottom:8px}
   .htable{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
   .htable th,.htable td{border:1px solid var(--line);padding:8px 10px;text-align:center;white-space:nowrap}
   .htable th{background:var(--accent-soft);color:var(--accent);font-weight:700}
@@ -72,9 +76,13 @@
       border:1px solid var(--line);border-radius:10px;background:#fff}
   .hj.sur{border-color:var(--surname);background:var(--surname-soft)}
   .hj.after{opacity:.6;border-style:dashed;background:#faf6ee}
+  /* 추가음: 공식 인명용 한자표에는 없고 일부 사전에만 있는 음 */
+  .hj.extra .char{color:#9a948a}
+  .hj.extra .mean{color:#b0aaa0}
+  .hj .xtag{font-size:9px;color:#9a948a;border:1px solid #cfc9bf;border-radius:6px;padding:0 4px;margin-top:4px}
   .hj .char{font-size:26px;line-height:1;font-family:inherit;font-weight:500}
   .hj .mean{font-size:11px;color:var(--sub);margin-top:6px;text-align:center;line-height:1.35;min-height:30px;
-            display:flex;align-items:center;justify-content:center;word-break:keep-all}
+            display:flex;align-items:center;justify-content:center;word-break:keep-all;white-space:pre-line}
   .hj .badge{font-size:9px;color:#fff;background:var(--surname);border-radius:6px;padding:1px 5px;margin-top:4px}
   .hj .date{font-size:9px;color:var(--accent);margin-top:4px}
   .afterhead{font-size:12px;color:var(--surname);font-weight:700;margin:10px 0 4px;border-top:1px dashed var(--line);padding-top:8px}
@@ -303,6 +311,12 @@
       <h3>목적</h3>
       <p>이름은 캐릭터의 정체성입니다. 이 도구는 창작자가 소리(한글)와 의미(한자)를 함께 고려하면서, 실제 제도에서 통용되는 인명용 한자 범위 안에서 설득력 있는 이름을 지을 수 있도록 돕는 것을 목표로 합니다.</p>
     </div>
+    <div class="card about-card about-note">
+      <p class="updated">Last Updated: 2026. 11. 6.</p>
+      <p>이 사이트는 비전문가가 대법원, 국가법령정보센터, 나무위키, 네이버 인명용 한자사전 등에 공개된 인명용 한자 자료를 연도별로 모아 만들었습니다.</p>
+      <p>다만 인명용 한자표에는 “이 표에 지정된 발음으로만 사용할 수 있다”는 규정이 있습니다. 대법원 공식 자료에는 없고 일부 사이트에만 있는 추가 음은 실제 출생신고 때 받아들여지지 않을 수 있으니 참고해 주세요. 이런 추가 음은 한자 찾기 결과에서 <b>회색 글씨</b>와 <b>추가음</b> 표시로 구분했습니다.</p>
+      <p>성씨(姓) 표시는 통계청 인구주택총조사의 성씨별 인구 자료(2015년)를 기준으로 했습니다. 2015년이 가장 최근 자료라서, 이 조사에 나타나지 않은 성씨는 표시되지 않습니다. 따라서 성씨 표시가 없는 한자라도 실제로는 성씨로 쓰일 수 있습니다. 남궁·제갈 같은 두 글자 성씨도 표시하지 않습니다.</p>
+    </div>
   </div>
 </section>
 
@@ -367,6 +381,7 @@
       <div class="checkrow">
         <label><input type="checkbox" id="chkSurname"> 성씨만 보기<span class="helptip" aria-label="성씨 표시 설명">?<span class="tip"><span class="sw"></span>성씨로도 쓰이는 한자 (姓 표시). 검색 결과에서 붉게 강조되고 <b>姓</b> 뱃지가 붙어요.</span></span></label>
         <label>성씨 <input type="number" id="surCount" min="0" max="2" value="1"> 자</label>
+        <span class="legend">회색 글씨 = 추가음<span class="helptip" aria-label="추가음 설명">?<span class="tip">대법원 인명용 한자표에는 없고 네이버 인명용 한자사전 등 일부 사전에만 있는 음이에요(예: 泏 굴, 山 미). 캐릭터 이름에는 써도 되지만, 실제 출생신고에서는 받아들여지지 않을 수 있어요.</span></span></span>
         <label><input type="checkbox" id="chkExact"> 글자 완벽히 맞춤<span class="helptip" aria-label="글자 완벽히 맞춤 설명">?<span class="tip">완성된 글자만 검색됩니다. '글자 완벽히 맞춤'을 끄면 초성·중성이 비슷한 글자도 함께 나와요.</span></span></label>
         <button id="hanjaSortBtn" class="sortbtn" title="한글 뜻 기준 정렬 방향 바꾸기" aria-label="한글 뜻 기준 정렬 방향 바꾸기">한글 뜻 <span class="arrow">▲</span> 오름차순</button>
       </div>
@@ -479,6 +494,7 @@
 <button class="memofab" id="memoFab" title="이름 메모 열기"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span class="dot" id="memoFabDot"></span></button>
 <div class="toast" id="toast"></div>
 
+<script src="config.local.js"></script><!-- LOCAL_CONFIG: 로컬 전용. 배포 때 GitHub Actions 가 이 줄을 지웁니다 -->
 <script>
 /* ===================== 한글 자모 엔진 ===================== */
 const CHO=['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
@@ -546,9 +562,16 @@ function consFromJamo(str){
 
 /* ===================== 한자 / 성씨 데이터베이스 (구글 스프레드시트 연동) =====================
    데이터는 Apps Script 웹앱(JSON)에서 실시간으로 불러옵니다.
-   ▼▼▼ 아래 SHEET_API_URL 을 배포한 웹앱 주소로 바꾸세요 ▼▼▼
+   웹앱 주소는 코드에 직접 적지 않습니다.
+   - 배포: GitHub Actions 가 저장소 시크릿 SHEET_API_URL 값으로 아래 자리표시자를 바꿔 넣습니다.
+   - 로컬: git 에 올라가지 않는 config.local.js 에 window.LOCAL_SHEET_API_URL 을 적어 두면 그 값을 씁니다.
    각 한자 항목: h=한자, m=뜻, s=성씨 여부, d=인명용 추가 시행일(YYYY-MM-DD) */
-const SHEET_API_URL='https://script.google.com/macros/s/AKfycbxn-fv6PeabfEZevxotL9MMg7uVw316FwZ6D8PfYhPWdYKOs2Vzg4Xa0KyXGOolqhiN/exec';
+const SHEET_API_URL_PLACEHOLDER='__SHEET_API_' + 'URL__';   // 배포 때 치환되지 않도록 쪼개 둔 비교용 값
+const SHEET_API_URL=(function(){
+  const injected='__SHEET_API_URL__';
+  if(injected && injected!==SHEET_API_URL_PLACEHOLDER) return injected;
+  return window.LOCAL_SHEET_API_URL||'';
+})();
 let HANJA_DB={};      // { '자':[{h,m,s,d}], ... } — 로드 후 채워짐
 let SYLLABLES=[];     // Object.keys(HANJA_DB)
 let HISTORY=[];       // 개정연혁 행 배열
@@ -758,9 +781,13 @@ document.getElementById('advBtn').onclick=runAdv;
 function hjChip(x,syl){
   const after=isAfterBirth(x);
   const h=escHtml(x.h), m=escHtml(x.m), s=escHtml(syl);
+  // 여러 뜻·음을 가진 한자는 뜻이 줄바꿈(\n)으로 구분되어 있다. 카드에는 줄바꿈 그대로 보여주고,
+  // 메모(한 줄 = 한 항목)에 담을 값은 ' / ' 로 이어 한 줄로 만든다.
+  const m1=escHtml(String(x.m||'').split(/\s*\n\s*/).filter(Boolean).join(' / '));
   const dateLine=showDates()?`<div class="date">${x.d?escHtml(x.d.replace(/-/g,'.'))+' 추가':'기존 인명용'}</div>`:'';
-  const fav=`<button class="favbtn" data-syl="${s}" data-h="${h}" data-m="${m}" title="이름 메모에 담기">☆</button>`;
-  return `<div class="hj${x.s?' sur':''}${after?' after':''}">${fav}<div class="char">${h}</div><div class="mean">${m}</div>${x.s?'<div class="badge">姓</div>':''}${dateLine}</div>`;
+  const fav=`<button class="favbtn" data-syl="${s}" data-h="${h}" data-m="${m1}" title="이름 메모에 담기">☆</button>`;
+  const xAttr=x.x?' title="추가음: 대법원 인명용 한자표에는 없고 일부 사전에만 있는 음이에요. 실제 출생신고에서는 받아들여지지 않을 수 있어요."':'';
+  return `<div class="hj${x.s?' sur':''}${after?' after':''}${x.x?' extra':''}"${xAttr}>${fav}<div class="char">${h}</div><div class="mean">${m}</div>${x.s?'<div class="badge">姓</div>':''}${x.x?'<div class="xtag">추가음</div>':''}${dateLine}</div>`;
 }
 let hanjaSortDir='asc';   // 한글 뜻 기준 정렬 방향: 'asc' 오름차순 / 'desc' 내림차순
 function sortByMean(arr){
@@ -1173,8 +1200,8 @@ async function loadData(){
   const status=document.getElementById('dataStatus');
   status.className='datastatus';   // 로딩 표시는 전체화면 오버레이(#loadOverlay)가 담당
   try{
-    if(!SHEET_API_URL || SHEET_API_URL.indexOf('PASTE')===0)
-      throw new Error('SHEET_API_URL 이 설정되지 않았습니다. 코드의 SHEET_API_URL 을 배포한 웹앱 주소로 바꾸세요.');
+    if(!SHEET_API_URL)
+      throw new Error('SHEET_API_URL 이 설정되지 않았습니다. 로컬에서는 config.local.js 를, 배포에서는 저장소 시크릿 SHEET_API_URL 을 확인하세요.');
     const res=await fetch(SHEET_API_URL,{method:'GET',redirect:'follow'});
     if(!res.ok) throw new Error('서버 응답 오류 (HTTP '+res.status+')');
     const data=await res.json();

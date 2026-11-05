@@ -1,0 +1,58 @@
+# main 에 push 하면 저장소 시크릿 SHEET_API_URL 을 index.html 에 넣어 GitHub Pages 에 배포합니다.
+# 저장소 Settings → Pages → Source 를 "GitHub Actions" 로 설정해야 동작합니다.
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build site with injected Sheet API URL
+        env:
+          SHEET_API_URL: ${{ secrets.SHEET_API_URL }}
+        run: |
+          if [ -z "$SHEET_API_URL" ]; then
+            echo "::error::저장소 시크릿 SHEET_API_URL 이 비어 있습니다. Settings → Secrets and variables → Actions 에서 등록하세요."
+            exit 1
+          fi
+          mkdir _site
+          git archive HEAD | tar -x -C _site
+          rm -rf _site/.github
+          python3 - <<'PY'
+          import os, pathlib, sys
+          p = pathlib.Path("_site/index.html")
+          s = p.read_text(encoding="utf-8")
+          token = "'__SHEET_API_URL__'"
+          if s.count(token) != 1:
+              sys.exit(f"index.html 에서 자리표시자 {token} 를 정확히 1개 찾지 못했습니다 (찾은 개수: {s.count(token)})")
+          url = os.environ["SHEET_API_URL"].strip().replace("\\", "\\\\").replace("'", "\\'")
+          s = s.replace(token, f"'{url}'")
+          # 로컬 전용 config.local.js 불러오는 줄 제거
+          s = "\n".join(l for l in s.split("\n") if "<!-- LOCAL_CONFIG:" not in l)
+          p.write_text(s, encoding="utf-8")
+          PY
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

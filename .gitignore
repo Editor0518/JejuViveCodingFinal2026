@@ -10,3 +10,6 @@ __pycache__/
 *.csv
 *.bak
 *.gs
+
+# 로컬 전용 웹앱 URL 설정 (배포는 GitHub 시크릿 SHEET_API_URL 사용)
+config.local.js
