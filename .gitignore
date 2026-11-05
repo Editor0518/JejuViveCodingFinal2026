@@ -1,6 +1,9 @@
 # 대법원규칙 원본 (국가법령정보센터에서 재다운로드 가능, 용량 큼)
 인명용추가한자표/
+인명용한자허용자체표/
 OCR작업필요/
+html-slides/
+gitignore/
 _ocr_work/
 변환결과_markdown/
 __pycache__/
